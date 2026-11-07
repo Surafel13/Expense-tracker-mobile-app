@@ -1,13 +1,10 @@
-// ─────────────────────────────────────────────────────────────
-// Dashboard balance card with income/expense breakdown
-// ─────────────────────────────────────────────────────────────
-
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@context/ThemeContext";
 import { formatCurrency } from "@utils/format";
 import type { Summary } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface SummaryCardProps {
   summary: Summary;
@@ -15,6 +12,8 @@ interface SummaryCardProps {
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
   const { colors, resolvedScheme } = useTheme();
+  const { t } = useLanguage();
+
   const isDark = resolvedScheme === "dark";
 
   return (
@@ -27,14 +26,14 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         },
       ]}
     >
-      <Text style={styles.label}>Total Balance</Text>
+      <Text style={styles.label}>{t("summary.totalBalance")}</Text>
       <Text style={styles.balance}>{formatCurrency(summary.balance)}</Text>
 
       <View style={styles.row}>
         <View style={styles.col}>
           <View style={styles.iconRow}>
             <Ionicons name="arrow-down-circle" size={18} color="#34D399" />
-            <Text style={styles.subLabel}>Income</Text>
+            <Text style={styles.subLabel}>{t("summary.income")}</Text>
           </View>
           <Text style={styles.subValue}>{formatCurrency(summary.income)}</Text>
         </View>
@@ -44,7 +43,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         <View style={styles.col}>
           <View style={styles.iconRow}>
             <Ionicons name="arrow-up-circle" size={18} color="#FCA5A5" />
-            <Text style={styles.subLabel}>Expenses</Text>
+            <Text style={styles.subLabel}>{t("summary.expenses")}</Text>
           </View>
           <Text style={styles.subValue}>{formatCurrency(summary.expense)}</Text>
         </View>

@@ -13,6 +13,7 @@ import { SectionHeader } from "@components/SectionHeader";
 import { EmptyState } from "@components/EmptyState";
 
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { useTransactions } from "@context/TransactionsContext";
 import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
@@ -24,7 +25,7 @@ import {
   toMonthKey,
 } from "@utils/date";
 
-import type { CategoryId, MonthlyData, Transaction } from "@app-types/index";
+import type { CategoryId, MonthlyData } from "@app-types/index";
 
 interface CategoryTotal {
   categoryId: CategoryId;
@@ -34,22 +35,24 @@ interface CategoryTotal {
 
 export default function StatsScreen() {
   const { colors } = useTheme();
+  const { t, language } = useLanguage();
   const { transactions } = useTransactions();
   const [chartRange] = useState(6);
 
   // ── 6-month chart data ────────────────────────────────────
+  // `language` is a dependency so the short month labels refresh
   const chartData: MonthlyData[] = useMemo(() => {
     const keys = lastNMonthKeys(chartRange);
 
     const map = new Map<string, { income: number; expense: number }>();
     for (const key of keys) map.set(key, { income: 0, expense: 0 });
 
-    for (const t of transactions) {
-      const key = toMonthKey(t.date);
+    for (const tx of transactions) {
+      const key = toMonthKey(tx.date);
       const bucket = map.get(key);
       if (!bucket) continue;
-      if (t.type === "income") bucket.income += t.amount;
-      else bucket.expense += t.amount;
+      if (tx.type === "income") bucket.income += tx.amount;
+      else bucket.expense += tx.amount;
     }
 
     return keys.map((key) => {
@@ -61,7 +64,7 @@ export default function StatsScreen() {
         expense: b.expense,
       };
     });
-  }, [transactions, chartRange]);
+  }, [transactions, chartRange, language]);
 
   // ── Current-month totals + top categories ─────────────────
   const { monthly, topCategories } = useMemo(() => {
@@ -70,15 +73,15 @@ export default function StatsScreen() {
     let expense = 0;
     const catMap = new Map<CategoryId, { total: number; count: number }>();
 
-    for (const t of transactions) {
-      if (!isSameMonth(t.date, now)) continue;
-      if (t.type === "income") income += t.amount;
+    for (const tx of transactions) {
+      if (!isSameMonth(tx.date, now)) continue;
+      if (tx.type === "income") income += tx.amount;
       else {
-        expense += t.amount;
-        if (!t.category) continue;
-        const prev = catMap.get(t.category) ?? { total: 0, count: 0 };
-        catMap.set(t.category, {
-          total: prev.total + t.amount,
+        expense += tx.amount;
+        if (!tx.category) continue;
+        const prev = catMap.get(tx.category) ?? { total: 0, count: 0 };
+        catMap.set(tx.category, {
+          total: prev.total + tx.amount,
           count: prev.count + 1,
         });
       }
@@ -112,7 +115,7 @@ export default function StatsScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.heading, { color: colors.text }]}>
-            Statistics
+            {t("stats.heading")}
           </Text>
         </View>
 
@@ -130,7 +133,7 @@ export default function StatsScreen() {
                   color={colors.income}
                 />
                 <Text style={[styles.totalLabel, { color: colors.textMuted }]}>
-                  Income
+                  {t("stats.income")}
                 </Text>
               </View>
               <Text style={[styles.totalValue, { color: colors.income }]}>
@@ -146,7 +149,7 @@ export default function StatsScreen() {
                   color={colors.expense}
                 />
                 <Text style={[styles.totalLabel, { color: colors.textMuted }]}>
-                  Expense
+                  {t("stats.expense")}
                 </Text>
               </View>
               <Text style={[styles.totalValue, { color: colors.expense }]}>
@@ -159,7 +162,7 @@ export default function StatsScreen() {
 
           <View style={styles.netRow}>
             <Text style={[styles.netLabel, { color: colors.textMuted }]}>
-              Net this month
+              {t("stats.net")}
             </Text>
             <Text
               style={[
@@ -177,14 +180,14 @@ export default function StatsScreen() {
 
         {/* ── 6-month bar chart ─────────────────────────── */}
         <Card style={styles.cardContainer}>
-          <SectionHeader title="Last 6 months" />
+          <SectionHeader title={t("stats.last6")} />
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View
                 style={[styles.legendDot, { backgroundColor: colors.income }]}
               />
               <Text style={[styles.legendText, { color: colors.textMuted }]}>
-                Income
+                {t("stats.income")}
               </Text>
             </View>
             <View style={styles.legendItem}>
@@ -192,7 +195,7 @@ export default function StatsScreen() {
                 style={[styles.legendDot, { backgroundColor: colors.expense }]}
               />
               <Text style={[styles.legendText, { color: colors.textMuted }]}>
-                Expense
+                {t("stats.expense")}
               </Text>
             </View>
           </View>
@@ -201,18 +204,18 @@ export default function StatsScreen() {
 
         {/* ── Top categories ────────────────────────────── */}
         <Card style={styles.cardContainer}>
-          <SectionHeader title="Top categories this month" />
+          <SectionHeader title={t("stats.topCategories")} />
           {!hasAnyData ? (
             <EmptyState
               icon="pie-chart-outline"
-              title="No data yet"
-              subtitle="Add transactions to see your spending breakdown."
+              title={t("stats.noDataTitle")}
+              subtitle={t("stats.noDataSub")}
             />
           ) : topCategories.length === 0 ? (
             <EmptyState
               icon="pie-chart-outline"
-              title="No expenses this month"
-              subtitle="Your income is looking healthy!"
+              title={t("stats.noExpTitle")}
+              subtitle={t("stats.noExpSub")}
             />
           ) : (
             <View style={styles.categoriesList}>
@@ -238,7 +241,7 @@ export default function StatsScreen() {
                         style={[styles.catName, { color: colors.text }]}
                         numberOfLines={1}
                       >
-                        {cat.label}
+                        {t(`categories.${c.categoryId}`)}
                       </Text>
                       <Text style={[styles.catAmount, { color: colors.text }]}>
                         {formatCurrency(c.total)}
@@ -261,7 +264,9 @@ export default function StatsScreen() {
                       />
                     </View>
                     <Text style={[styles.catSub, { color: colors.textMuted }]}>
-                      {c.count} transaction{c.count === 1 ? "" : "s"}
+                      {t(c.count === 1 ? "stats.txOne" : "stats.txMany", {
+                        count: c.count,
+                      })}
                     </Text>
                   </View>
                 );

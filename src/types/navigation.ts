@@ -5,6 +5,7 @@ export type TabParamList = {
   Transactions: undefined;
   Accounts: undefined;
   Stats: undefined;
+  Settings: undefined;
 };
 
 export type RootStackParamList = {

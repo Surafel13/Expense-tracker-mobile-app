@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -6,49 +6,52 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { Screen } from '@components/Screen';
-import { Card } from '@components/Card';
-import { TransactionItem } from '@components/TransactionItem';
-import { EmptyState } from '@components/EmptyState';
-import { TransactionDetailSheet } from '@components/TransactionDetailSheet';
+import { Screen } from "@components/Screen";
+import { Card } from "@components/Card";
+import { TransactionItem } from "@components/TransactionItem";
+import { EmptyState } from "@components/EmptyState";
+import { TransactionDetailSheet } from "@components/TransactionDetailSheet";
 
-import { useTheme } from '@context/ThemeContext';
-import { useAccounts } from '@context/AccountsContext';
-import { useTransactions } from '@context/TransactionsContext';
-import { ACCOUNT_TYPES } from '@constants/accounts';
-import { getAccountTransactions } from '@utils/balance';
-import { formatCurrency } from '@utils/format';
-import { getCategory } from '@constants/categories';
-import type { RootStackParamList } from '@app-types/navigation';
-import type { Transaction } from '@app-types/index';
+import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
+import { useAccounts } from "@context/AccountsContext";
+import { useTransactions } from "@context/TransactionsContext";
+import { ACCOUNT_TYPES } from "@constants/accounts";
+import { getAccountTransactions } from "@utils/balance";
+import { formatCurrency } from "@utils/format";
+import type { RootStackParamList } from "@app-types/navigation";
+import type { Transaction } from "@app-types/index";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = RouteProp<RootStackParamList, 'AccountDetail'>;
+type Route = RouteProp<RootStackParamList, "AccountDetail">;
 
 export default function AccountDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { accountsWithBalance } = useAccounts();
   const { transactions, deleteTransaction } = useTransactions();
 
-  const account = accountsWithBalance.find((a) => a.id === route.params.accountId);
+  const account = accountsWithBalance.find(
+    (a) => a.id === route.params.accountId,
+  );
   const [selected, setSelected] = useState<Transaction | null>(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: account?.name ?? 'Account',
+      title: account?.name ?? t("nav.account"),
       headerRight: () =>
         account ? (
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate('AddAccount', { accountId: account.id })
+              navigation.navigate("AddAccount", { accountId: account.id })
             }
             hitSlop={8}
             style={{ padding: 8 }}
@@ -57,13 +60,10 @@ export default function AccountDetailScreen() {
           </TouchableOpacity>
         ) : null,
     });
-  }, [navigation, account, colors.text]);
+  }, [navigation, account, colors.text, t]);
 
   const items = useMemo(
-    () =>
-      account
-        ? getAccountTransactions(account.id, transactions)
-        : [],
+    () => (account ? getAccountTransactions(account.id, transactions) : []),
     [account, transactions],
   );
 
@@ -73,8 +73,8 @@ export default function AccountDetailScreen() {
         <View style={styles.empty}>
           <EmptyState
             icon="alert-circle-outline"
-            title="Account not found"
-            subtitle="It may have been deleted."
+            title={t("accountDetail.notFound")}
+            subtitle={t("accountDetail.notFoundSub")}
           />
         </View>
       </Screen>
@@ -83,18 +83,20 @@ export default function AccountDetailScreen() {
 
   const meta = ACCOUNT_TYPES[account.type];
 
-  const confirmDelete = (t: Transaction) => {
-    const cat = t.category ? getCategory(t.category) : { label: 'Transfer' };
+  const confirmDelete = (tx: Transaction) => {
+    const label = tx.category
+      ? t(`categories.${tx.category}`)
+      : t("types.transfer");
     Alert.alert(
-      'Delete transaction',
-      `Remove "${t.note?.trim() || cat.label}"?`,
+      t("transactions.deleteTitle"),
+      t("accountDetail.deleteMessage", { name: tx.note?.trim() || label }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: t("common.delete"),
+          style: "destructive",
           onPress: async () => {
-            await deleteTransaction(t.id);
+            await deleteTransaction(tx.id);
             setSelected(null);
           },
         },
@@ -115,7 +117,7 @@ export default function AccountDetailScreen() {
                 {account.name}
               </Text>
               <Text style={[styles.accountType, { color: colors.textMuted }]}>
-                {meta.label}
+                {t(`accountTypes.${account.type}`)}
               </Text>
             </View>
           </View>
@@ -128,32 +130,34 @@ export default function AccountDetailScreen() {
             {formatCurrency(account.balance)}
           </Text>
           <Text style={[styles.opening, { color: colors.textMuted }]}>
-            Opening balance: {formatCurrency(account.openingBalance)}
+            {t("accountDetail.opening", {
+              amount: formatCurrency(account.openingBalance),
+            })}
           </Text>
         </Card>
 
         <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-          Transaction History
+          {t("accountDetail.history")}
         </Text>
 
         {items.length === 0 ? (
           <Card>
             <EmptyState
               icon="receipt-outline"
-              title="No transactions yet"
-              subtitle="Transactions for this account will appear here."
+              title={t("accountDetail.emptyTitle")}
+              subtitle={t("accountDetail.emptySub")}
             />
           </Card>
         ) : (
           <Card padded={false} style={{ paddingHorizontal: 16 }}>
-            {items.map((t, idx) => (
+            {items.map((tx, idx) => (
               <View
-                key={t.id}
+                key={tx.id}
                 style={idx === items.length - 1 ? undefined : undefined}
               >
                 <TransactionItem
-                  transaction={t}
-                  onPress={() => setSelected(t)}
+                  transaction={tx}
+                  onPress={() => setSelected(tx)}
                 />
               </View>
             ))}
@@ -165,9 +169,9 @@ export default function AccountDetailScreen() {
         visible={!!selected}
         transaction={selected}
         onClose={() => setSelected(null)}
-        onEdit={(t) => {
+        onEdit={(tx) => {
           setSelected(null);
-          navigation.navigate('AddTransaction', { transactionId: t.id });
+          navigation.navigate("AddTransaction", { transactionId: tx.id });
         }}
         onDelete={confirmDelete}
       />
@@ -177,23 +181,23 @@ export default function AccountDetailScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40, gap: 16 },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   icon: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  accountName: { fontSize: 17, fontWeight: '800' },
+  accountName: { fontSize: 17, fontWeight: "800" },
   accountType: { fontSize: 12, marginTop: 2 },
-  balance: { fontSize: 30, fontWeight: '800', marginTop: 14 },
+  balance: { fontSize: 30, fontWeight: "800", marginTop: 14 },
   opening: { fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.4,
   },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

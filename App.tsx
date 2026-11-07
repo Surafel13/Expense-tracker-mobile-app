@@ -9,6 +9,7 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { LanguageProvider } from "@context/LanguageContext";
 import { ThemeProvider, useTheme } from "@context/ThemeContext";
 import { TransactionsProvider } from "@context/TransactionsContext";
 import { AccountsProvider } from "@context/AccountsContext";
@@ -47,13 +48,15 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <TransactionsProvider>
-            <AccountsProvider>
-              <ThemedApp />
-            </AccountsProvider>
-          </TransactionsProvider>
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <TransactionsProvider>
+              <AccountsProvider>
+                <ThemedApp />
+              </AccountsProvider>
+            </TransactionsProvider>
+          </ThemeProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

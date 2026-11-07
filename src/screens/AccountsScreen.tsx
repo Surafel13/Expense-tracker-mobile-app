@@ -16,6 +16,7 @@ import { EmptyState } from "@components/EmptyState";
 import { Card } from "@components/Card";
 
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { useAccounts } from "@context/AccountsContext";
 import { formatCurrency } from "@utils/format";
 import type { RootStackParamList } from "@app-types/navigation";
@@ -25,6 +26,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function AccountsScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { accountsWithBalance, isReady } = useAccounts();
 
   const total = accountsWithBalance.reduce((s, a) => s + a.balance, 0);
@@ -35,7 +37,7 @@ export default function AccountsScreen() {
         <View style={styles.header}>
           <View>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              Total across accounts
+              {t("accounts.total")}
             </Text>
             <Text style={[styles.total, { color: colors.text }]}>
               {formatCurrency(total)}
@@ -55,14 +57,16 @@ export default function AccountsScreen() {
         >
           {!isReady ? (
             <Card>
-              <Text style={{ color: colors.textMuted }}>Loading…</Text>
+              <Text style={{ color: colors.textMuted }}>
+                {t("common.loading")}
+              </Text>
             </Card>
           ) : accountsWithBalance.length === 0 ? (
             <Card>
               <EmptyState
                 icon="wallet-outline"
-                title="No accounts yet"
-                subtitle="Tap + to add your first account."
+                title={t("accounts.emptyTitle")}
+                subtitle={t("accounts.emptySub")}
               />
             </Card>
           ) : (

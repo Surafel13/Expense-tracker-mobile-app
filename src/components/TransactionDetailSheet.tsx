@@ -13,9 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@context/ThemeContext";
 import { useAccounts } from "@context/AccountsContext";
+import { useLanguage } from "@context/LanguageContext";
 import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
-import { formatDateLabel } from "@utils/date";
+import { formatDateLabel, formatTimeLabel } from "@utils/date";
 import { TypeBadge } from "@components/TypeBadge";
 import { Button } from "@components/Button";
 
@@ -29,14 +30,6 @@ interface TransactionDetailSheetProps {
   onDelete: (t: Transaction) => void;
 }
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
   visible,
   transaction,
@@ -45,6 +38,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
   onDelete,
 }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { accountsWithBalance } = useAccounts();
 
@@ -94,15 +88,20 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
 
   const category = useMemo(() => {
     if (!transaction) return null;
-    if (transaction.category) return getCategory(transaction.category);
+    if (transaction.category) {
+      return {
+        ...getCategory(transaction.category),
+        label: t(`categories.${transaction.category}`),
+      };
+    }
     return {
       icon: "swap-horizontal",
       color: colors.primary,
-      label: "Transfer",
+      label: t("types.transfer"),
       id: "other" as const,
       type: "expense" as const,
     };
-  }, [transaction, colors.primary]);
+  }, [transaction, colors.primary, t]);
 
   const accountName = useMemo(() => {
     if (!transaction) return "";
@@ -115,10 +114,10 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
       );
       return `${from?.name ?? "—"} → ${to?.name ?? "—"}`;
     }
-    if (!transaction.accountId) return "Other";
+    if (!transaction.accountId) return t("common.other");
     const acc = accountsWithBalance.find((a) => a.id === transaction.accountId);
-    return acc?.name ?? "Other";
-  }, [transaction, accountsWithBalance]);
+    return acc?.name ?? t("common.other");
+  }, [transaction, accountsWithBalance, t]);
 
   const shouldRender = (visible || mounted) && !!transaction && !!category;
 
@@ -197,31 +196,25 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
         <View style={styles.detailsGrid}>
           <DetailRow
             icon="calendar-outline"
-            label="Date"
+            label={t("detail.date")}
             value={formatDateLabel(transaction.date)}
             colors={colors}
           />
           <DetailRow
             icon="time-outline"
-            label="Time"
-            value={formatTime(transaction.createdAt)}
+            label={t("detail.time")}
+            value={formatTimeLabel(transaction.createdAt)}
             colors={colors}
           />
           <DetailRow
             icon="wallet-outline"
-            label="Type"
-            value={
-              transaction.type === "income"
-                ? "Income"
-                : transaction.type === "transfer"
-                  ? "Transfer"
-                  : "Expense"
-            }
+            label={t("detail.type")}
+            value={t(`types.${transaction.type}`)}
             colors={colors}
           />
           <DetailRow
             icon="card-outline"
-            label={isTransfer ? "Between" : "Account"}
+            label={isTransfer ? t("detail.between") : t("detail.account")}
             value={accountName}
             colors={colors}
           />
@@ -230,7 +223,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
         {transaction.note?.trim() ? (
           <View style={styles.descriptionBlock}>
             <Text style={[styles.blockLabel, { color: colors.textMuted }]}>
-              Description
+              {t("detail.description")}
             </Text>
             <Text style={[styles.description, { color: colors.text }]}>
               {transaction.note.trim()}
@@ -241,7 +234,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
         <View style={styles.actions}>
           <View style={{ flex: 1 }}>
             <Button
-              label="Edit"
+              label={t("common.edit")}
               icon="create-outline"
               variant="secondary"
               onPress={() => onEdit(transaction)}
@@ -249,7 +242,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
           </View>
           <View style={{ flex: 1 }}>
             <Button
-              label="Delete"
+              label={t("common.delete")}
               icon="trash-outline"
               variant="danger"
               onPress={() => onDelete(transaction)}

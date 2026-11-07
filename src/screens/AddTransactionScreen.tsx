@@ -25,6 +25,7 @@ import { AccountPicker } from "@components/AccountPicker";
 import { BalanceWarningBanner } from "@components/BalanceWarningBanner";
 
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { useTransactions } from "@context/TransactionsContext";
 import { useAccounts } from "@context/AccountsContext";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@constants/categories";
@@ -32,7 +33,7 @@ import { UNTRACKED_ACCOUNT_ID } from "@constants/accounts";
 import { formatDateLabel } from "@utils/date";
 import { parseAmount, formatCurrency } from "@utils/format";
 
-import type { CategoryId, TransactionType } from "@app-types/index";
+import type { CategoryId } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -44,6 +45,7 @@ export default function AddTransactionScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { colors, resolvedScheme } = useTheme();
+  const { t } = useLanguage();
   const isDark = resolvedScheme === "dark";
   const { transactions, addTransaction, updateTransaction, deleteTransaction } =
     useTransactions();
@@ -52,7 +54,7 @@ export default function AddTransactionScreen() {
   const editingId = route.params?.transactionId;
   const editing = useMemo(
     () =>
-      editingId ? transactions.find((t) => t.id === editingId) : undefined,
+      editingId ? transactions.find((tx) => tx.id === editingId) : undefined,
     [editingId, transactions],
   );
   const isEditMode = !!editing;
@@ -72,14 +74,14 @@ export default function AddTransactionScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: isEditMode
-        ? "Edit Transaction"
+        ? t("txForm.editTitle")
         : mode === "transfer"
-          ? "New Transfer"
+          ? t("txForm.newTransfer")
           : mode === "income"
-            ? "New Income"
-            : "New Expense",
+            ? t("txForm.newIncome")
+            : t("txForm.newExpense"),
     });
-  }, [navigation, isEditMode, mode]);
+  }, [navigation, isEditMode, mode, t]);
 
   useEffect(() => {
     if (!editing) {
@@ -94,15 +96,15 @@ export default function AddTransactionScreen() {
       }
       return;
     }
-    const t = editing;
-    setMode(t.type);
-    setAmountInput(String(t.amount));
-    if (t.category) setCategory(t.category);
-    if (t.accountId) setAccountId(t.accountId);
-    if (t.fromAccountId) setFromAccountId(t.fromAccountId);
-    if (t.toAccountId) setToAccountId(t.toAccountId);
-    setDate(new Date(t.date));
-    setNote(t.note ?? "");
+    const tx = editing;
+    setMode(tx.type);
+    setAmountInput(String(tx.amount));
+    if (tx.category) setCategory(tx.category);
+    if (tx.accountId) setAccountId(tx.accountId);
+    if (tx.fromAccountId) setFromAccountId(tx.fromAccountId);
+    if (tx.toAccountId) setToAccountId(tx.toAccountId);
+    setDate(new Date(tx.date));
+    setNote(tx.note ?? "");
   }, [editing, accountsWithBalance]);
 
   useEffect(() => {
@@ -136,39 +138,52 @@ export default function AddTransactionScreen() {
     if (mode === "expense" && selectedAccount) {
       if (selectedAccount.allowNegative) return null;
       if (selectedAccount.balance - parsedAmount < 0) {
-        return `Insufficient balance in ${selectedAccount.name}. Available ${formatCurrency(selectedAccount.balance)}`;
+        return t("errors.insufficient", {
+          name: selectedAccount.name,
+          amount: formatCurrency(selectedAccount.balance),
+        });
       }
     }
     if (mode === "transfer" && selectedFromAccount) {
       if (selectedFromAccount.allowNegative) return null;
       if (selectedFromAccount.balance - parsedAmount < 0) {
-        return `Insufficient balance in ${selectedFromAccount.name}. Available ${formatCurrency(selectedFromAccount.balance)}`;
+        return t("errors.insufficient", {
+          name: selectedFromAccount.name,
+          amount: formatCurrency(selectedFromAccount.balance),
+        });
       }
     }
     return null;
-  }, [mode, parsedAmount, amountValid, selectedAccount, selectedFromAccount]);
+  }, [
+    mode,
+    parsedAmount,
+    amountValid,
+    selectedAccount,
+    selectedFromAccount,
+    t,
+  ]);
 
   const onSave = async () => {
     setError(null);
     if (!amountValid) {
-      setError("Please enter a positive amount.");
+      setError(t("txForm.errAmount"));
       return;
     }
     if (mode !== "transfer" && !category) {
-      setError("Please choose a category.");
+      setError(t("txForm.errCategory"));
       return;
     }
     if (mode !== "transfer" && !accountId) {
-      setError("Please choose an account.");
+      setError(t("txForm.errAccount"));
       return;
     }
     if (mode === "transfer") {
       if (!fromAccountId || !toAccountId) {
-        setError("Please choose both accounts.");
+        setError(t("txForm.errBoth"));
         return;
       }
       if (fromAccountId === toAccountId) {
-        setError("Source and destination must be different.");
+        setError(t("txForm.errSame"));
         return;
       }
     }
@@ -206,8 +221,7 @@ export default function AddTransactionScreen() {
       }
       navigation.goBack();
     } catch (e) {
-      const msg =
-        e instanceof Error ? e.message : "Could not save. Please try again.";
+      const msg = e instanceof Error ? e.message : t("txForm.errSave");
       setError(msg);
       setSubmitting(false);
     }
@@ -215,10 +229,10 @@ export default function AddTransactionScreen() {
 
   const onDelete = () => {
     if (!editingId) return;
-    Alert.alert("Delete transaction", "This action cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("txForm.deleteTitle"), t("txForm.deleteMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           await deleteTransaction(editingId);
@@ -299,11 +313,7 @@ export default function AddTransactionScreen() {
                       { color: active ? "#FFFFFF" : colors.textMuted },
                     ]}
                   >
-                    {opt === "income"
-                      ? "Income"
-                      : opt === "transfer"
-                        ? "Transfer"
-                        : "Expense"}
+                    {t(`types.${opt}`)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -317,7 +327,7 @@ export default function AddTransactionScreen() {
             ]}
           >
             <Text style={[styles.amountLabel, { color: colors.textMuted }]}>
-              Amount
+              {t("txForm.amount")}
             </Text>
             <View style={styles.amountRow}>
               <Text style={[styles.currency, { color: accent }]}>$</Text>
@@ -340,7 +350,7 @@ export default function AddTransactionScreen() {
           {mode !== "transfer" ? (
             <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.textMuted }]}>
-                Account
+                {t("txForm.account")}
               </Text>
               <AccountPicker
                 accounts={accountsWithBalance}
@@ -353,7 +363,7 @@ export default function AddTransactionScreen() {
             <>
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>
-                  From Account
+                  {t("txForm.from")}
                 </Text>
                 <AccountPicker
                   accounts={accountsWithBalance}
@@ -364,7 +374,7 @@ export default function AddTransactionScreen() {
               </View>
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>
-                  To Account
+                  {t("txForm.to")}
                 </Text>
                 <AccountPicker
                   accounts={accountsWithBalance}
@@ -383,7 +393,7 @@ export default function AddTransactionScreen() {
           {mode !== "transfer" ? (
             <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.textMuted }]}>
-                Category
+                {t("txForm.category")}
               </Text>
               <CategoryPicker
                 type={mode}
@@ -395,7 +405,7 @@ export default function AddTransactionScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textMuted }]}>
-              Date
+              {t("txForm.date")}
             </Text>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -445,10 +455,10 @@ export default function AddTransactionScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textMuted }]}>
-              Note (optional)
+              {t("txForm.note")}
             </Text>
             <Input
-              placeholder="Add a note or description"
+              placeholder={t("txForm.notePlaceholder")}
               value={note}
               onChangeText={setNote}
               maxLength={80}
@@ -479,7 +489,7 @@ export default function AddTransactionScreen() {
 
           <View style={styles.actions}>
             <Button
-              label={isEditMode ? "Save changes" : "Save transaction"}
+              label={isEditMode ? t("txForm.saveChanges") : t("txForm.save")}
               onPress={onSave}
               loading={submitting}
               disabled={submitting || !!balanceWarning}
@@ -488,7 +498,7 @@ export default function AddTransactionScreen() {
 
             {isEditMode ? (
               <Button
-                label="Delete transaction"
+                label={t("txForm.delete")}
                 variant="danger"
                 icon="trash-outline"
                 onPress={onDelete}

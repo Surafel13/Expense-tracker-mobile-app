@@ -1,25 +1,25 @@
-// ─────────────────────────────────────────────────────────────
-// Income vs Expense grouped bar chart
-// ─────────────────────────────────────────────────────────────
-
 import React from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { BarChart as RNBarChart } from "react-native-chart-kit";
 import { useTheme } from "@context/ThemeContext";
 import type { MonthlyData } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface BarChartProps {
   data: MonthlyData[];
 }
 
 export const BarChart: React.FC<BarChartProps> = ({ data }) => {
+  const { t } = useLanguage();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
 
   if (data.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={{ color: colors.textMuted }}>No data to chart yet.</Text>
+        <Text style={{ color: colors.textMuted }}>
+          {t("chart.noData")}
+        </Text>
       </View>
     );
   }
@@ -34,7 +34,7 @@ export const BarChart: React.FC<BarChartProps> = ({ data }) => {
     return (
       <View style={styles.empty}>
         <Text style={{ color: colors.textMuted }}>
-          Add transactions to see the chart.
+          {t("chart.noData")}
         </Text>
       </View>
     );

@@ -5,6 +5,7 @@ import { useTheme } from "@context/ThemeContext";
 import { ACCOUNT_TYPES } from "@constants/accounts";
 import { formatCurrency } from "@utils/format";
 import type { AccountWithBalance } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface AccountCardProps {
   account: AccountWithBalance;
@@ -12,6 +13,8 @@ interface AccountCardProps {
 
 export const AccountCard: React.FC<AccountCardProps> = ({ account }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
   const meta = ACCOUNT_TYPES[account.type];
 
   return (
@@ -29,7 +32,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account }) => {
           {account.name}
         </Text>
         <Text style={[styles.type, { color: colors.textMuted }]}>
-          {meta.label}
+          {t(`accountTypes.${account.type}`)}
         </Text>
       </View>
       <Text

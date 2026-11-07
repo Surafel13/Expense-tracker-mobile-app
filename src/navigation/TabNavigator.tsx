@@ -7,11 +7,16 @@ import TransactionsScreen from "@screens/TransactionsScreen";
 import AccountsScreen from "@screens/AccountsScreen";
 import StatsScreen from "@screens/StatsScreen";
 import type { TabParamList } from "@app-types/navigation";
+import SettingsScreen from "@screens/SettingsScreen";
+import { useLanguage } from "@context/LanguageContext";
+
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export const TabNavigator: React.FC = () => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
 
   return (
     <Tab.Navigator
@@ -31,6 +36,7 @@ export const TabNavigator: React.FC = () => {
           paddingTop: 6,
           paddingBottom: 8,
         },
+        tabBarLabel: t(`tabs.${route.name}`),
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarIcon: ({ focused, color, size }) => {
           const map: Record<keyof TabParamList, string> = {
@@ -38,6 +44,7 @@ export const TabNavigator: React.FC = () => {
             Transactions: focused ? "list" : "list-outline",
             Accounts: focused ? "wallet" : "wallet-outline",
             Stats: focused ? "bar-chart" : "bar-chart-outline",
+            Settings: focused ? "settings" : "settings-outline",
           };
           return (
             <Ionicons name={map[route.name] as any} size={size} color={color} />
@@ -49,6 +56,7 @@ export const TabNavigator: React.FC = () => {
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Accounts" component={AccountsScreen} />
       <Tab.Screen name="Stats" component={StatsScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
 };

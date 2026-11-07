@@ -19,10 +19,12 @@ import { TransactionItem } from "@components/TransactionItem";
 import { TransactionDetailSheet } from "@components/TransactionDetailSheet";
 
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { useTransactions } from "@context/TransactionsContext";
-import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
 import { formatDateLabel, isSameDay, isSameMonth } from "@utils/date";
+import { tr } from "@utils/i18n";
+import type { TranslationKey } from "@constants/translations";
 
 import type { CategoryId, Transaction } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
@@ -30,10 +32,12 @@ import type { RootStackParamList } from "@app-types/navigation";
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RangeKey = "thisMonth" | "lastMonth" | "all";
 
-const RANGE_LABELS: Record<RangeKey, string> = {
-  thisMonth: "This Month",
-  lastMonth: "Last Month",
-  all: "All Time",
+const RANGE_KEYS: RangeKey[] = ["thisMonth", "lastMonth", "all"];
+
+const RANGE_LABEL_KEYS: Record<RangeKey, TranslationKey> = {
+  thisMonth: "transactions.thisMonth",
+  lastMonth: "transactions.lastMonth",
+  all: "transactions.allTime",
 };
 
 const FILTER_CATEGORIES: Array<CategoryId | "all"> = [
@@ -68,13 +72,13 @@ function groupByDay(items: Transaction[]): Array<{
   const buckets = new Map<string, Transaction[]>();
   const order: string[] = [];
 
-  for (const t of items) {
-    const dayKey = t.date.slice(0, 10);
+  for (const tx of items) {
+    const dayKey = tx.date.slice(0, 10);
     if (!buckets.has(dayKey)) {
       buckets.set(dayKey, []);
       order.push(dayKey);
     }
-    buckets.get(dayKey)!.push(t);
+    buckets.get(dayKey)!.push(tx);
   }
 
   const today = new Date();
@@ -84,9 +88,9 @@ function groupByDay(items: Transaction[]): Array<{
   return order.map((key) => {
     const sample = buckets.get(key)![0];
     const title = isSameDay(sample.date, today)
-      ? "Today"
+      ? tr("transactions.today")
       : isSameDay(sample.date, yesterday)
-        ? "Yesterday"
+        ? tr("transactions.yesterday")
         : formatDateLabel(sample.date);
     return { key, title, data: buckets.get(key)! };
   });
@@ -95,6 +99,7 @@ function groupByDay(items: Transaction[]): Array<{
 export default function TransactionsScreen() {
   const navigation = useNavigation<Nav>();
   const { colors, resolvedScheme } = useTheme();
+  const { t, language } = useLanguage();
   const isDark = resolvedScheme === "dark";
   const { transactions, deleteTransaction } = useTransactions();
 
@@ -103,27 +108,33 @@ export default function TransactionsScreen() {
   const [selected, setSelected] = useState<Transaction | null>(null);
 
   const filtered = useMemo(() => {
-    return transactions.filter((t) => {
-      if (category !== "all" && t.category !== category) return false;
-      if (!inRange(t.date, range)) return false;
+    return transactions.filter((tx) => {
+      if (category !== "all" && tx.category !== category) return false;
+      if (!inRange(tx.date, range)) return false;
       return true;
     });
   }, [transactions, category, range]);
 
-  const grouped = useMemo(() => groupByDay(filtered), [filtered]);
+  // `language` is a dependency so day titles ("Today", month names) refresh
+  const grouped = useMemo(() => groupByDay(filtered), [filtered, language]);
 
-  const confirmDelete = (t: Transaction) => {
-    const cat = t.category ? getCategory(t.category) : { label: "Transfer" };
+  const confirmDelete = (tx: Transaction) => {
+    const label = tx.category
+      ? t(`categories.${tx.category}`)
+      : t("types.transfer");
     Alert.alert(
-      "Delete transaction",
-      `Remove "${t.note?.trim() || cat.label}" of ${formatCurrency(t.amount)}?`,
+      t("transactions.deleteTitle"),
+      t("transactions.deleteMessage", {
+        name: tx.note?.trim() || label,
+        amount: formatCurrency(tx.amount),
+      }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
-            await deleteTransaction(t.id);
+            await deleteTransaction(tx.id);
             setSelected(null);
           },
         },
@@ -136,12 +147,12 @@ export default function TransactionsScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={[styles.heading, { color: colors.text }]}>
-            Transactions
+            {t("transactions.heading")}
           </Text>
         </View>
 
         <View style={styles.rangeRow}>
-          {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => {
+          {RANGE_KEYS.map((key) => {
             const active = range === key;
             return (
               <TouchableOpacity
@@ -167,7 +178,7 @@ export default function TransactionsScreen() {
                     { color: active ? colors.onPrimary : colors.textMuted },
                   ]}
                 >
-                  {RANGE_LABELS[key]}
+                  {t(RANGE_LABEL_KEYS[key])}
                 </Text>
               </TouchableOpacity>
             );
@@ -212,7 +223,7 @@ export default function TransactionsScreen() {
                         },
                       ]}
                     >
-                      All
+                      {t("common.all")}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -237,8 +248,8 @@ export default function TransactionsScreen() {
               <Card>
                 <EmptyState
                   icon="filter-outline"
-                  title="Nothing matches"
-                  subtitle="Try a different category or date range."
+                  title={t("transactions.nothingTitle")}
+                  subtitle={t("transactions.nothingSub")}
                 />
               </Card>
             </View>
@@ -249,9 +260,9 @@ export default function TransactionsScreen() {
                   {group.title}
                 </Text>
                 <Card padded={false} style={styles.groupCard}>
-                  {group.data.map((t, index) => (
+                  {group.data.map((tx, index) => (
                     <View
-                      key={t.id}
+                      key={tx.id}
                       style={[
                         styles.row,
                         index > 0 && {
@@ -262,12 +273,12 @@ export default function TransactionsScreen() {
                     >
                       <View style={styles.rowInner}>
                         <TransactionItem
-                          transaction={t}
-                          onPress={() => setSelected(t)}
+                          transaction={tx}
+                          onPress={() => setSelected(tx)}
                         />
                       </View>
                       <TouchableOpacity
-                        onPress={() => confirmDelete(t)}
+                        onPress={() => confirmDelete(tx)}
                         hitSlop={12}
                         style={[
                           styles.deleteBtn,
@@ -277,7 +288,7 @@ export default function TransactionsScreen() {
                               : "rgba(239, 68, 68, 0.08)",
                           },
                         ]}
-                        accessibilityLabel="Delete transaction"
+                        accessibilityLabel={t("transactions.deleteA11y")}
                       >
                         <Ionicons
                           name="trash-outline"
@@ -298,9 +309,9 @@ export default function TransactionsScreen() {
         visible={!!selected}
         transaction={selected}
         onClose={() => setSelected(null)}
-        onEdit={(t) => {
+        onEdit={(tx) => {
           setSelected(null);
-          navigation.navigate("AddTransaction", { transactionId: t.id });
+          navigation.navigate("AddTransaction", { transactionId: tx.id });
         }}
         onDelete={confirmDelete}
       />

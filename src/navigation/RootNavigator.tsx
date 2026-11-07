@@ -6,11 +6,13 @@ import AddTransactionScreen from "@screens/AddTransactionScreen";
 import AddAccountScreen from "@screens/AddAccountScreen";
 import AccountDetailScreen from "@screens/AccountDetailScreen";
 import type { RootStackParamList } from "@app-types/navigation";
+import { useLanguage } from "@context/LanguageContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Stack.Navigator
@@ -35,7 +37,7 @@ export const RootNavigator: React.FC = () => {
         options={{
           presentation: "modal",
           animation: "slide_from_bottom",
-          title: "New Transaction",
+          title: t("nav.newTransaction"),
         }}
       />
       <Stack.Screen
@@ -44,13 +46,13 @@ export const RootNavigator: React.FC = () => {
         options={{
           presentation: "modal",
           animation: "slide_from_bottom",
-          title: "New Account",
+          title: t("nav.newAccount"),
         }}
       />
       <Stack.Screen
         name="AccountDetail"
         component={AccountDetailScreen}
-        options={{ title: "Account" }}
+        options={{ title: t("nav.account") }}
       />
     </Stack.Navigator>
   );

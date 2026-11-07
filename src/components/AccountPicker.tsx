@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@context/ThemeContext";
 import { ACCOUNT_TYPES, UNTRACKED_ACCOUNT_ID } from "@constants/accounts";
 import type { AccountWithBalance } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface AccountPickerProps {
   accounts: AccountWithBalance[];
@@ -27,6 +28,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
   excludeId = null,
 }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const items = accounts.filter((a) => a.id !== excludeId);
 
@@ -108,7 +110,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
               },
             ]}
           >
-            Other
+            {t("common.other")}
           </Text>
         </TouchableOpacity>
       ) : null}

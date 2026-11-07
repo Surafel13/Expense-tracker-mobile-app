@@ -1,13 +1,10 @@
-// ─────────────────────────────────────────────────────────────
-// Small category pill with icon + label
-// ─────────────────────────────────────────────────────────────
-
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@context/ThemeContext";
 import { getCategory } from "@constants/categories";
 import type { CategoryId } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface CategoryChipProps {
   categoryId: CategoryId;
@@ -23,6 +20,8 @@ export const CategoryChip: React.FC<CategoryChipProps> = ({
   compact = false,
 }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
   const category = getCategory(categoryId);
 
   const bg = selected ? category.color : colors.surface;
@@ -46,7 +45,7 @@ export const CategoryChip: React.FC<CategoryChipProps> = ({
         color={fg}
       />
       <Text style={[styles.label, { color: fg, fontSize: compact ? 12 : 13 }]}>
-        {category.label}
+        {t(`categories.${categoryId}`)}
       </Text>
     </View>
   );

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@context/ThemeContext";
 import type { TransactionType } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface TypeBadgeProps {
   type: TransactionType;
@@ -10,23 +11,24 @@ interface TypeBadgeProps {
 
 export const TypeBadge: React.FC<TypeBadgeProps> = ({ type }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const config: Record<
     TransactionType,
     { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }
   > = {
     income: {
-      label: "Income",
+      label: t("types.income"),
       color: colors.income,
       icon: "arrow-down-circle",
     },
     expense: {
-      label: "Expense",
+      label: t("types.expense"),
       color: colors.expense,
       icon: "arrow-up-circle",
     },
     transfer: {
-      label: "Transfer",
+      label: t("types.transfer"),
       color: colors.primary,
       icon: "swap-horizontal",
     },

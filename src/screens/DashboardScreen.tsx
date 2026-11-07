@@ -20,12 +20,12 @@ import { Card } from "@components/Card";
 import { TransactionDetailSheet } from "@components/TransactionDetailSheet";
 
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { useTransactions } from "@context/TransactionsContext";
+import { useAccounts } from "@context/AccountsContext";
 import { formatMonthLabel, isSameMonth } from "@utils/date";
-import { getCategory } from "@constants/categories";
 import type { Summary, Transaction } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
-import { useAccounts } from "@context/AccountsContext";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -33,6 +33,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
 
   const { colors, cycleMode, resolvedScheme } = useTheme();
+  const { t } = useLanguage();
   const { transactions, isReady, deleteTransaction } = useTransactions();
   const { accountsWithBalance } = useAccounts();
 
@@ -43,10 +44,10 @@ export default function DashboardScreen() {
     let income = 0;
     let expense = 0;
 
-    for (const t of transactions) {
-      if (!isSameMonth(t.date, now)) continue;
-      if (t.type === "income") income += t.amount;
-      else if (t.type === "expense") expense += t.amount;
+    for (const tx of transactions) {
+      if (!isSameMonth(tx.date, now)) continue;
+      if (tx.type === "income") income += tx.amount;
+      else if (tx.type === "expense") expense += tx.amount;
     }
 
     const s: Summary = {
@@ -60,18 +61,23 @@ export default function DashboardScreen() {
 
   const monthLabel = formatMonthLabel(new Date());
 
-  const confirmDelete = (t: Transaction) => {
-    const cat = t.category ? getCategory(t.category) : { label: "Transfer" };
+  const confirmDelete = (tx: Transaction) => {
+    const label = tx.category
+      ? t(`categories.${tx.category}`)
+      : t("types.transfer");
     Alert.alert(
-      "Delete transaction",
-      `Remove "${t.note?.trim() || cat.label}" of ${formatCurrencyForAlert(t.amount)}?`,
+      t("transactions.deleteTitle"),
+      t("transactions.deleteMessage", {
+        name: tx.note?.trim() || label,
+        amount: formatCurrencyForAlert(tx.amount),
+      }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
-            await deleteTransaction(t.id);
+            await deleteTransaction(tx.id);
             setSelected(null);
           },
         },
@@ -87,7 +93,9 @@ export default function DashboardScreen() {
             <Text style={[styles.greeting, { color: colors.textMuted }]}>
               {monthLabel}
             </Text>
-            <Text style={[styles.title, { color: colors.text }]}>Overview</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t("dashboard.overview")}
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -97,7 +105,7 @@ export default function DashboardScreen() {
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
             hitSlop={8}
-            accessibilityLabel="Toggle theme"
+            accessibilityLabel={t("dashboard.toggleTheme")}
           >
             <Ionicons
               name={
@@ -117,8 +125,10 @@ export default function DashboardScreen() {
 
           <View style={styles.section}>
             <SectionHeader
-              title="Recent transactions"
-              actionLabel={transactions.length > 0 ? "See all" : undefined}
+              title={t("dashboard.recent")}
+              actionLabel={
+                transactions.length > 0 ? t("dashboard.seeAll") : undefined
+              }
               onActionPress={
                 transactions.length > 0
                   ? () =>
@@ -129,21 +139,23 @@ export default function DashboardScreen() {
 
             {!isReady ? (
               <Card>
-                <Text style={{ color: colors.textMuted }}>Loading…</Text>
+                <Text style={{ color: colors.textMuted }}>
+                  {t("common.loading")}
+                </Text>
               </Card>
             ) : recent.length === 0 ? (
               <Card padded>
                 <EmptyState
                   icon="wallet-outline"
-                  title="No transactions yet"
-                  subtitle="Tap the + button to add your first transaction."
+                  title={t("dashboard.emptyTitle")}
+                  subtitle={t("dashboard.emptySub")}
                 />
               </Card>
             ) : (
               <Card padded={false} style={styles.recentCard}>
-                {recent.map((t, idx) => (
+                {recent.map((tx, idx) => (
                   <View
-                    key={t.id}
+                    key={tx.id}
                     style={[
                       styles.rowWrapper,
                       idx > 0 && {
@@ -153,8 +165,8 @@ export default function DashboardScreen() {
                     ]}
                   >
                     <TransactionItem
-                      transaction={t}
-                      onPress={() => setSelected(t)}
+                      transaction={tx}
+                      onPress={() => setSelected(tx)}
                     />
                   </View>
                 ))}
@@ -167,7 +179,7 @@ export default function DashboardScreen() {
           onPress={() => navigation.navigate("AddTransaction", {})}
           activeOpacity={0.85}
           style={[styles.fab, { backgroundColor: colors.primary }]}
-          accessibilityLabel="Add transaction"
+          accessibilityLabel={t("dashboard.addTransaction")}
         >
           <Ionicons name="add" size={28} color={colors.onPrimary} />
         </TouchableOpacity>
@@ -177,9 +189,9 @@ export default function DashboardScreen() {
         visible={!!selected}
         transaction={selected}
         onClose={() => setSelected(null)}
-        onEdit={(t) => {
+        onEdit={(tx) => {
           setSelected(null);
-          navigation.navigate("AddTransaction", { transactionId: t.id });
+          navigation.navigate("AddTransaction", { transactionId: tx.id });
         }}
         onDelete={confirmDelete}
       />

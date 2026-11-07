@@ -6,6 +6,7 @@ import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
 import { formatDayLabel } from "@utils/date";
 import type { Transaction } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -16,12 +17,17 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
 }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
   const category = transaction.category
-    ? getCategory(transaction.category)
+    ? {
+        ...getCategory(transaction.category),
+        label: t(`categories.${transaction.category}`),
+      }
     : {
         icon: "swap-horizontal",
         color: colors.primary,
-        label: "Transfer" as const,
+        label: t("types.transfer"),
       };
 
   const isIncome = transaction.type === "income";
@@ -35,7 +41,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
   const amountPrefix = isIncome ? "+" : isTransfer ? "" : "-";
 
-  const fallbackTitle = isTransfer ? "Transfer" : category.label;
+  const fallbackTitle = isTransfer ? t("types.transfer") : category.label;
   const title = transaction.note?.trim() || fallbackTitle;
 
   return (

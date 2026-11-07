@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Grid of selectable categories for the add/edit form
-// ─────────────────────────────────────────────────────────────
-
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +5,7 @@ import { Pressable } from "react-native";
 import { useTheme } from "@context/ThemeContext";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@constants/categories";
 import type { CategoryId, TransactionType } from "@app-types/index";
+import { useLanguage } from "@context/LanguageContext";
 
 interface CategoryPickerProps {
   type: TransactionType;
@@ -22,6 +19,8 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   onSelect,
 }) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
   const list = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
@@ -53,7 +52,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
               ]}
               numberOfLines={1}
             >
-              {c.label}
+              {t(`categories.${c.id}`)}
             </Text>
           </Pressable>
         );

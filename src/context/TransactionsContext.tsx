@@ -16,6 +16,8 @@ import { getAccounts } from "@storage/accounts";
 import { computeAccountBalance } from "@utils/balance";
 import { runMigrationOnce } from "@utils/migration";
 import type { Transaction, TransactionInput } from "@app-types/index";
+import { tr } from "@utils/i18n";
+import { formatCurrency } from "@utils/format";
 
 interface TransactionsContextValue {
   transactions: Transaction[];
@@ -56,7 +58,10 @@ async function validateBalanceImpact(
     const current = computeAccountBalance(acc, relevant);
     if (current - input.amount < 0) {
       throw new Error(
-        `Insufficient balance in "${acc.name}". Available: $${current.toFixed(2)}`,
+        tr("errors.insufficient", {
+          name: acc.name,
+          amount: formatCurrency(current),
+        }),
       );
     }
   }
@@ -68,7 +73,10 @@ async function validateBalanceImpact(
     const current = computeAccountBalance(acc, relevant);
     if (current - input.amount < 0) {
       throw new Error(
-        `Insufficient balance in "${acc.name}". Available: $${current.toFixed(2)}`,
+        tr("errors.insufficient", {
+          name: acc.name,
+          amount: formatCurrency(current),
+        }),
       );
     }
   }
