@@ -140,13 +140,17 @@ export default function DashboardScreen() {
                 />
               </Card>
             ) : (
-              <Card padded={false} style={{ paddingHorizontal: 16 }}>
+              <Card padded={false} style={styles.recentCard}>
                 {recent.map((t, idx) => (
                   <View
                     key={t.id}
-                    style={
-                      idx === recent.length - 1 ? styles.lastRow : undefined
-                    }
+                    style={[
+                      styles.rowWrapper,
+                      idx > 0 && {
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: colors.border,
+                      },
+                    ]}
                   >
                     <TransactionItem
                       transaction={t}
@@ -194,11 +198,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-  greeting: { fontSize: 13, fontWeight: "600", marginBottom: 2 },
-  title: { fontSize: 24, fontWeight: "800" },
+  greeting: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
   iconButton: {
     width: 44,
     height: 44,
@@ -212,8 +226,15 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
     gap: 20,
   },
-  section: { gap: 4 },
-  lastRow: { borderBottomWidth: 0 },
+  section: { gap: 8 },
+  recentCard: {
+    overflow: "hidden",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+  },
+  rowWrapper: {
+    paddingVertical: 2,
+  },
   fab: {
     position: "absolute",
     right: 20,
@@ -224,9 +245,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 8,
   },
 });

@@ -43,7 +43,8 @@ type FormMode = "income" | "expense" | "transfer";
 export default function AddTransactionScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { colors } = useTheme();
+  const { colors, resolvedScheme } = useTheme();
+  const isDark = resolvedScheme === "dark";
   const { transactions, addTransaction, updateTransaction, deleteTransaction } =
     useTransactions();
   const { accountsWithBalance } = useAccounts();
@@ -267,10 +268,18 @@ export default function AddTransactionScreen() {
               return (
                 <TouchableOpacity
                   key={opt}
+                  activeOpacity={0.8}
                   onPress={() => setMode(opt)}
                   style={[
                     styles.toggleBtn,
-                    active && { backgroundColor: optColor },
+                    active && {
+                      backgroundColor: optColor,
+                      shadowColor: optColor,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    },
                   ]}
                 >
                   <Ionicons
@@ -301,7 +310,12 @@ export default function AddTransactionScreen() {
             })}
           </View>
 
-          <View style={styles.amountBlock}>
+          <View
+            style={[
+              styles.amountCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <Text style={[styles.amountLabel, { color: colors.textMuted }]}>
               Amount
             </Text>
@@ -314,9 +328,9 @@ export default function AddTransactionScreen() {
                 onChangeText={setAmountInput}
                 containerStyle={{ flex: 1 }}
                 style={{
-                  fontSize: 28,
+                  fontSize: 32,
                   fontWeight: "800",
-                  height: 64,
+                  height: 56,
                   textAlign: "left",
                 }}
               />
@@ -324,7 +338,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {mode !== "transfer" ? (
-            <>
+            <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.textMuted }]}>
                 Account
               </Text>
@@ -334,27 +348,31 @@ export default function AddTransactionScreen() {
                 onSelect={setAccountId}
                 includeUntracked={mode === "expense"}
               />
-            </>
+            </View>
           ) : (
             <>
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                From
-              </Text>
-              <AccountPicker
-                accounts={accountsWithBalance}
-                selectedId={fromAccountId}
-                onSelect={setFromAccountId}
-                excludeId={toAccountId}
-              />
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                To
-              </Text>
-              <AccountPicker
-                accounts={accountsWithBalance}
-                selectedId={toAccountId}
-                onSelect={setToAccountId}
-                excludeId={fromAccountId}
-              />
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  From Account
+                </Text>
+                <AccountPicker
+                  accounts={accountsWithBalance}
+                  selectedId={fromAccountId}
+                  onSelect={setFromAccountId}
+                  excludeId={toAccountId}
+                />
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  To Account
+                </Text>
+                <AccountPicker
+                  accounts={accountsWithBalance}
+                  selectedId={toAccountId}
+                  onSelect={setToAccountId}
+                  excludeId={fromAccountId}
+                />
+              </View>
             </>
           )}
 
@@ -363,7 +381,7 @@ export default function AddTransactionScreen() {
           ) : null}
 
           {mode !== "transfer" ? (
-            <>
+            <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.textMuted }]}>
                 Category
               </Text>
@@ -372,22 +390,48 @@ export default function AddTransactionScreen() {
                 selected={category}
                 onSelect={setCategory}
               />
-            </>
+            </View>
           ) : null}
 
-          <Text style={[styles.label, { color: colors.textMuted }]}>Date</Text>
-          <TouchableOpacity
-            onPress={() => setShowPicker(true)}
-            style={[
-              styles.dateRow,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Ionicons name="calendar-outline" size={18} color={colors.text} />
-            <Text style={[styles.dateText, { color: colors.text }]}>
-              {formatDateLabel(date)}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              Date
             </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setShowPicker(true)}
+              style={[
+                styles.dateRow,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.dateIconBadge,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(0,0,0,0.04)",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.dateText, { color: colors.text }]}>
+                {formatDateLabel(date)}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.textMuted}
+                style={{ marginLeft: "auto" }}
+              />
+            </TouchableOpacity>
+          </View>
 
           {showPicker && (
             <DateTimePicker
@@ -399,40 +443,58 @@ export default function AddTransactionScreen() {
             />
           )}
 
-          <Text style={[styles.label, { color: colors.textMuted }]}>
-            Note (optional)
-          </Text>
-          <Input
-            placeholder="Add a note"
-            value={note}
-            onChangeText={setNote}
-            maxLength={80}
-          />
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              Note (optional)
+            </Text>
+            <Input
+              placeholder="Add a note or description"
+              value={note}
+              onChangeText={setNote}
+              maxLength={80}
+            />
+          </View>
 
           {error ? (
-            <Text style={{ color: colors.danger, marginBottom: 8 }}>
-              {error}
-            </Text>
+            <View
+              style={[
+                styles.errorBanner,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(239, 68, 68, 0.14)"
+                    : "rgba(239, 68, 68, 0.08)",
+                },
+              ]}
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={colors.danger}
+              />
+              <Text style={[styles.errorText, { color: colors.danger }]}>
+                {error}
+              </Text>
+            </View>
           ) : null}
 
-          <Button
-            label={isEditMode ? "Save changes" : "Save"}
-            onPress={onSave}
-            loading={submitting}
-            disabled={submitting || !!balanceWarning}
-            icon={isEditMode ? "checkmark" : "add"}
-            style={{ marginTop: 8 }}
-          />
-
-          {isEditMode ? (
+          <View style={styles.actions}>
             <Button
-              label="Delete transaction"
-              variant="danger"
-              icon="trash-outline"
-              onPress={onDelete}
-              style={{ marginTop: 12 }}
+              label={isEditMode ? "Save changes" : "Save transaction"}
+              onPress={onSave}
+              loading={submitting}
+              disabled={submitting || !!balanceWarning}
+              icon={isEditMode ? "checkmark" : "add"}
             />
-          ) : null}
+
+            {isEditMode ? (
+              <Button
+                label="Delete transaction"
+                variant="danger"
+                icon="trash-outline"
+                onPress={onDelete}
+              />
+            ) : null}
+          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -442,45 +504,100 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 48,
+    gap: 16,
+  },
   toggle: {
     flexDirection: "row",
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 4,
-    marginBottom: 20,
   },
   toggleBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
   },
-  toggleLabel: { fontSize: 13, fontWeight: "700" },
-  amountBlock: { marginBottom: 20 },
-  amountLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
-  amountRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  currency: { fontSize: 28, fontWeight: "800" },
-  label: {
-    fontSize: 12,
+  toggleLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  amountCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  amountLabel: {
+    fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginBottom: 10,
-    marginTop: 12,
+    letterSpacing: 0.7,
+    marginBottom: 2,
+  },
+  amountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  currency: {
+    fontSize: 32,
+    fontWeight: "800",
+  },
+  fieldGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginLeft: 2,
   },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     height: 52,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 14,
-    marginBottom: 14,
   },
-  dateText: { fontSize: 15, fontWeight: "600" },
+  dateIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8,
+  },
 });

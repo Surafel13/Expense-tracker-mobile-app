@@ -94,7 +94,8 @@ function groupByDay(items: Transaction[]): Array<{
 
 export default function TransactionsScreen() {
   const navigation = useNavigation<Nav>();
-  const { colors } = useTheme();
+  const { colors, resolvedScheme } = useTheme();
+  const isDark = resolvedScheme === "dark";
   const { transactions, deleteTransaction } = useTransactions();
 
   const [category, setCategory] = useState<CategoryId | "all">("all");
@@ -133,9 +134,11 @@ export default function TransactionsScreen() {
   return (
     <Screen>
       <View style={styles.container}>
-        <Text style={[styles.heading, { color: colors.text }]}>
-          Transactions
-        </Text>
+        <View style={styles.header}>
+          <Text style={[styles.heading, { color: colors.text }]}>
+            Transactions
+          </Text>
+        </View>
 
         <View style={styles.rangeRow}>
           {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => {
@@ -143,19 +146,25 @@ export default function TransactionsScreen() {
             return (
               <TouchableOpacity
                 key={key}
+                activeOpacity={0.8}
                 onPress={() => setRange(key)}
                 style={[
                   styles.rangeBtn,
                   {
                     backgroundColor: active ? colors.primary : colors.surface,
                     borderColor: active ? colors.primary : colors.border,
+                    shadowColor: active ? colors.primary : "transparent",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: active ? 0.2 : 0,
+                    shadowRadius: 4,
+                    elevation: active ? 2 : 0,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.rangeLabel,
-                    { color: active ? colors.onPrimary : colors.text },
+                    { color: active ? colors.onPrimary : colors.textMuted },
                   ]}
                 >
                   {RANGE_LABELS[key]}
@@ -165,76 +174,92 @@ export default function TransactionsScreen() {
           })}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {FILTER_CATEGORIES.map((id) => (
-            <View key={id} style={styles.chipWrap}>
-              {id === "all" ? (
-                <TouchableOpacity
-                  onPress={() => setCategory("all")}
-                  style={[
-                    styles.allChip,
-                    {
-                      backgroundColor:
-                        category === "all" ? colors.primary : colors.surface,
-                      borderColor:
-                        category === "all" ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="apps-outline"
-                    size={14}
-                    color={category === "all" ? colors.onPrimary : colors.text}
-                  />
-                  <Text
+        <View style={styles.filterContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}
+          >
+            {FILTER_CATEGORIES.map((id) => (
+              <View key={id} style={styles.chipWrap}>
+                {id === "all" ? (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setCategory("all")}
                     style={[
-                      styles.allChipLabel,
+                      styles.allChip,
                       {
-                        color:
-                          category === "all" ? colors.onPrimary : colors.text,
+                        backgroundColor:
+                          category === "all" ? colors.primary : colors.surface,
+                        borderColor:
+                          category === "all" ? colors.primary : colors.border,
                       },
                     ]}
                   >
-                    All
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <CategoryChip
-                  categoryId={id}
-                  selected={category === id}
-                  onPress={() => setCategory(id)}
-                  compact
-                />
-              )}
-            </View>
-          ))}
-        </ScrollView>
+                    <Ionicons
+                      name="apps-outline"
+                      size={14}
+                      color={
+                        category === "all" ? colors.onPrimary : colors.text
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.allChipLabel,
+                        {
+                          color:
+                            category === "all" ? colors.onPrimary : colors.text,
+                        },
+                      ]}
+                    >
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <CategoryChip
+                    categoryId={id}
+                    selected={category === id}
+                    onPress={() => setCategory(id)}
+                    compact
+                  />
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
 
         <ScrollView
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
           {grouped.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon="filter-outline"
-                title="Nothing matches"
-                subtitle="Try a different category or date range."
-              />
-            </Card>
+            <View style={styles.emptyContainer}>
+              <Card>
+                <EmptyState
+                  icon="filter-outline"
+                  title="Nothing matches"
+                  subtitle="Try a different category or date range."
+                />
+              </Card>
+            </View>
           ) : (
             grouped.map((group) => (
               <View key={group.key} style={styles.group}>
                 <Text style={[styles.groupTitle, { color: colors.textMuted }]}>
                   {group.title}
                 </Text>
-                <Card padded={false} style={{ paddingHorizontal: 16 }}>
-                  {group.data.map((t) => (
-                    <View key={t.id} style={styles.row}>
+                <Card padded={false} style={styles.groupCard}>
+                  {group.data.map((t, index) => (
+                    <View
+                      key={t.id}
+                      style={[
+                        styles.row,
+                        index > 0 && {
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: colors.border,
+                        },
+                      ]}
+                    >
                       <View style={styles.rowInner}>
                         <TransactionItem
                           transaction={t}
@@ -243,13 +268,20 @@ export default function TransactionsScreen() {
                       </View>
                       <TouchableOpacity
                         onPress={() => confirmDelete(t)}
-                        hitSlop={8}
-                        style={styles.deleteBtn}
+                        hitSlop={12}
+                        style={[
+                          styles.deleteBtn,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(239, 68, 68, 0.1)"
+                              : "rgba(239, 68, 68, 0.08)",
+                          },
+                        ]}
                         accessibilityLabel="Delete transaction"
                       >
                         <Ionicons
                           name="trash-outline"
-                          size={18}
+                          size={16}
                           color={colors.danger}
                         />
                       </TouchableOpacity>
@@ -278,56 +310,90 @@ export default function TransactionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  heading: {
-    fontSize: 24,
-    fontWeight: "800",
+  header: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
   rangeRow: {
     flexDirection: "row",
     paddingHorizontal: 20,
     gap: 8,
-    marginBottom: 12,
+    marginVertical: 12,
   },
   rangeBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  rangeLabel: { fontSize: 13, fontWeight: "600" },
+  rangeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  filterContainer: {
+    marginBottom: 4,
+  },
   chipsRow: {
     paddingHorizontal: 20,
     gap: 8,
-    paddingBottom: 12,
+    paddingVertical: 8,
   },
-  chipWrap: { marginRight: 8 },
+  chipWrap: { marginRight: 4 },
   allChip: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 999,
+    borderRadius: 20,
     borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     gap: 6,
   },
-  allChipLabel: { fontSize: 12, fontWeight: "600" },
-  listContent: { paddingHorizontal: 20, paddingBottom: 100, gap: 16 },
+  allChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 120,
+    gap: 20,
+  },
+  emptyContainer: {
+    marginTop: 24,
+  },
   group: { gap: 8 },
   groupTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 0.4,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
+    marginLeft: 4,
   },
-  row: { flexDirection: "row", alignItems: "center" },
+  groupCard: {
+    overflow: "hidden",
+    borderRadius: 16,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 16,
+  },
   rowInner: { flex: 1 },
   deleteBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 8,
   },
 });
