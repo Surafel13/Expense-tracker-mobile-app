@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Root component: providers + navigation + status bar
-// ─────────────────────────────────────────────────────────────
-
 import React, { useMemo } from "react";
 import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ThemeProvider, useTheme } from "@context/ThemeContext";
 import { TransactionsProvider } from "@context/TransactionsContext";
+import { AccountsProvider } from "@context/AccountsContext";
 import { RootNavigator } from "@navigation/RootNavigator";
 
 function ThemedApp() {
@@ -36,8 +33,6 @@ function ThemedApp() {
     };
   }, [resolvedScheme, colors]);
 
-  // NOTE: NavigationContainer in v7 no longer accepts a `style` prop.
-  // Wrap it in a View to get the same flex:1 layout guarantee.
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <NavigationContainer theme={navTheme}>
@@ -54,7 +49,9 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <TransactionsProvider>
-            <ThemedApp />
+            <AccountsProvider>
+              <ThemedApp />
+            </AccountsProvider>
           </TransactionsProvider>
         </ThemeProvider>
       </SafeAreaProvider>

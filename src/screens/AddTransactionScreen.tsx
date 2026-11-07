@@ -1,8 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-// Add / Edit Transaction form
-// ─────────────────────────────────────────────────────────────
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -25,12 +21,16 @@ import { Screen } from "@components/Screen";
 import { Input } from "@components/Input";
 import { Button } from "@components/Button";
 import { CategoryPicker } from "@components/CategoryPicker";
+import { AccountPicker } from "@components/AccountPicker";
+import { BalanceWarningBanner } from "@components/BalanceWarningBanner";
 
 import { useTheme } from "@context/ThemeContext";
 import { useTransactions } from "@context/TransactionsContext";
+import { useAccounts } from "@context/AccountsContext";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@constants/categories";
-import { formatDateLabel, toYMD } from "@utils/date";
-import { parseAmount } from "@utils/format";
+import { UNTRACKED_ACCOUNT_ID } from "@constants/accounts";
+import { formatDateLabel } from "@utils/date";
+import { parseAmount, formatCurrency } from "@utils/format";
 
 import type { CategoryId, TransactionType } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
@@ -38,12 +38,15 @@ import type { RootStackParamList } from "@app-types/navigation";
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, "AddTransaction">;
 
+type FormMode = "income" | "expense" | "transfer";
+
 export default function AddTransactionScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { colors } = useTheme();
   const { transactions, addTransaction, updateTransaction, deleteTransaction } =
     useTransactions();
+  const { accountsWithBalance } = useAccounts();
 
   const editingId = route.params?.transactionId;
   const editing = useMemo(
@@ -53,80 +56,148 @@ export default function AddTransactionScreen() {
   );
   const isEditMode = !!editing;
 
-  // ── Form state ───────────────────────────────────────────
-  const [type, setType] = useState<TransactionType>("expense");
+  const [mode, setMode] = useState<FormMode>("expense");
   const [amountInput, setAmountInput] = useState("");
   const [category, setCategory] = useState<CategoryId | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [fromAccountId, setFromAccountId] = useState<string | null>(null);
+  const [toAccountId, setToAccountId] = useState<string | null>(null);
   const [date, setDate] = useState<Date>(new Date());
   const [note, setNote] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Prefill when editing
-  useEffect(() => {
-    if (!editing) return;
-    setType(editing.type);
-    setAmountInput(String(editing.amount));
-    setCategory(editing.category ?? null);
-    setDate(new Date(editing.date));
-    setNote(editing.note ?? "");
+  useLayoutEffect(() => {
     navigation.setOptions({
-      title: "Edit Transaction",
+      title: isEditMode
+        ? "Edit Transaction"
+        : mode === "transfer"
+          ? "New Transfer"
+          : mode === "income"
+            ? "New Income"
+            : "New Expense",
     });
-  }, [editing, navigation]);
+  }, [navigation, isEditMode, mode]);
 
-  // Whenever type changes and current category is invalid, reset
   useEffect(() => {
-    if (!category) return;
-    const list = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    if (!list.some((c) => c.id === category)) {
-      setCategory(null);
+    if (!editing) {
+      if (!accountId && accountsWithBalance.length > 0) {
+        setAccountId(accountsWithBalance[0].id);
+      }
+      if (!fromAccountId && accountsWithBalance.length > 0) {
+        setFromAccountId(accountsWithBalance[0].id);
+      }
+      if (!toAccountId && accountsWithBalance.length > 1) {
+        setToAccountId(accountsWithBalance[1].id);
+      }
+      return;
     }
-  }, [type, category]);
+    const t = editing;
+    setMode(t.type);
+    setAmountInput(String(t.amount));
+    if (t.category) setCategory(t.category);
+    if (t.accountId) setAccountId(t.accountId);
+    if (t.fromAccountId) setFromAccountId(t.fromAccountId);
+    if (t.toAccountId) setToAccountId(t.toAccountId);
+    setDate(new Date(t.date));
+    setNote(t.note ?? "");
+  }, [editing, accountsWithBalance]);
 
-  // Default category when empty (first item in the current type)
   useEffect(() => {
+    if (mode === "transfer") return;
+    if (!category) return;
+    const list = mode === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    if (!list.some((c) => c.id === category)) setCategory(null);
+  }, [mode, category]);
+
+  useEffect(() => {
+    if (mode === "transfer") return;
     if (category) return;
-    const list = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const list = mode === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
     if (list.length > 0) setCategory(list[0].id);
-  }, [type, category]);
+  }, [mode, category]);
 
-  const onTypeChange = (next: TransactionType) => {
-    if (next === type) return;
-    setType(next);
-    // Category gets auto-reset by the effect above if needed
-  };
+  const selectedAccount = useMemo(
+    () => accountsWithBalance.find((a) => a.id === accountId),
+    [accountId, accountsWithBalance],
+  );
+  const selectedFromAccount = useMemo(
+    () => accountsWithBalance.find((a) => a.id === fromAccountId),
+    [fromAccountId, accountsWithBalance],
+  );
 
-  const onChangeDate = (event: DateTimePickerEvent, selected?: Date) => {
-    // Android fires twice (dismiss + set) — only handle "set"
-    if (Platform.OS === "android") setShowPicker(false);
-    if (event.type === "set" && selected) setDate(selected);
-  };
+  const parsedAmount = parseAmount(amountInput);
+  const amountValid = !Number.isNaN(parsedAmount) && parsedAmount > 0;
+
+  const balanceWarning = useMemo(() => {
+    if (!amountValid) return null;
+    if (mode === "expense" && selectedAccount) {
+      if (selectedAccount.allowNegative) return null;
+      if (selectedAccount.balance - parsedAmount < 0) {
+        return `Insufficient balance in ${selectedAccount.name}. Available ${formatCurrency(selectedAccount.balance)}`;
+      }
+    }
+    if (mode === "transfer" && selectedFromAccount) {
+      if (selectedFromAccount.allowNegative) return null;
+      if (selectedFromAccount.balance - parsedAmount < 0) {
+        return `Insufficient balance in ${selectedFromAccount.name}. Available ${formatCurrency(selectedFromAccount.balance)}`;
+      }
+    }
+    return null;
+  }, [mode, parsedAmount, amountValid, selectedAccount, selectedFromAccount]);
 
   const onSave = async () => {
     setError(null);
-    const amount = parseAmount(amountInput);
-
-    if (!amount || Number.isNaN(amount) || amount <= 0) {
+    if (!amountValid) {
       setError("Please enter a positive amount.");
       return;
     }
-    if (!category) {
+    if (mode !== "transfer" && !category) {
       setError("Please choose a category.");
       return;
     }
-
-    const payload = {
-      type,
-      amount,
-      category,
-      date: date.toISOString(),
-      note: note.trim() || undefined,
-    };
+    if (mode !== "transfer" && !accountId) {
+      setError("Please choose an account.");
+      return;
+    }
+    if (mode === "transfer") {
+      if (!fromAccountId || !toAccountId) {
+        setError("Please choose both accounts.");
+        return;
+      }
+      if (fromAccountId === toAccountId) {
+        setError("Source and destination must be different.");
+        return;
+      }
+    }
 
     try {
       setSubmitting(true);
+      const base = {
+        amount: parsedAmount,
+        date: date.toISOString(),
+        note: note.trim() || undefined,
+      };
+
+      let payload;
+      if (mode === "transfer") {
+        payload = {
+          ...base,
+          type: "transfer" as const,
+          fromAccountId: fromAccountId!,
+          toAccountId: toAccountId!,
+        };
+      } else {
+        payload = {
+          ...base,
+          type: mode as "income" | "expense",
+          category: category!,
+          accountId:
+            accountId === UNTRACKED_ACCOUNT_ID ? undefined : accountId!,
+        };
+      }
+
       if (isEditMode && editingId) {
         await updateTransaction(editingId, payload);
       } else {
@@ -134,8 +205,9 @@ export default function AddTransactionScreen() {
       }
       navigation.goBack();
     } catch (e) {
-      console.warn("[addTransaction] save failed:", e);
-      setError("Could not save. Please try again.");
+      const msg =
+        e instanceof Error ? e.message : "Could not save. Please try again.";
+      setError(msg);
       setSubmitting(false);
     }
   };
@@ -155,7 +227,17 @@ export default function AddTransactionScreen() {
     ]);
   };
 
-  const accent = type === "income" ? colors.income : colors.expense;
+  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === "android") setShowPicker(false);
+    if (event.type === "set" && selectedDate) setDate(selectedDate);
+  };
+
+  const accent =
+    mode === "income"
+      ? colors.income
+      : mode === "transfer"
+        ? colors.primary
+        : colors.expense;
 
   return (
     <Screen padBottom>
@@ -168,31 +250,36 @@ export default function AddTransactionScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Type toggle ─────────────────────────────── */}
           <View
             style={[
               styles.toggle,
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
-            {(["expense", "income"] as TransactionType[]).map((opt) => {
-              const active = type === opt;
+            {(["expense", "income", "transfer"] as FormMode[]).map((opt) => {
+              const active = mode === opt;
               const optColor =
-                opt === "income" ? colors.income : colors.expense;
+                opt === "income"
+                  ? colors.income
+                  : opt === "transfer"
+                    ? colors.primary
+                    : colors.expense;
               return (
                 <TouchableOpacity
                   key={opt}
-                  onPress={() => onTypeChange(opt)}
+                  onPress={() => setMode(opt)}
                   style={[
                     styles.toggleBtn,
-                    active && {
-                      backgroundColor: optColor,
-                    },
+                    active && { backgroundColor: optColor },
                   ]}
                 >
                   <Ionicons
                     name={
-                      opt === "income" ? "arrow-down-circle" : "arrow-up-circle"
+                      opt === "income"
+                        ? "arrow-down-circle"
+                        : opt === "transfer"
+                          ? "swap-horizontal"
+                          : "arrow-up-circle"
                     }
                     size={16}
                     color={active ? "#FFFFFF" : colors.textMuted}
@@ -203,14 +290,17 @@ export default function AddTransactionScreen() {
                       { color: active ? "#FFFFFF" : colors.textMuted },
                     ]}
                   >
-                    {opt === "income" ? "Income" : "Expense"}
+                    {opt === "income"
+                      ? "Income"
+                      : opt === "transfer"
+                        ? "Transfer"
+                        : "Expense"}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* ── Amount ──────────────────────────────────── */}
           <View style={styles.amountBlock}>
             <Text style={[styles.amountLabel, { color: colors.textMuted }]}>
               Amount
@@ -233,20 +323,59 @@ export default function AddTransactionScreen() {
             </View>
           </View>
 
-          {/* ── Category ────────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            Category
-          </Text>
-          <CategoryPicker
-            type={type}
-            selected={category}
-            onSelect={setCategory}
-          />
+          {mode !== "transfer" ? (
+            <>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Account
+              </Text>
+              <AccountPicker
+                accounts={accountsWithBalance}
+                selectedId={accountId}
+                onSelect={setAccountId}
+                includeUntracked={mode === "expense"}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                From
+              </Text>
+              <AccountPicker
+                accounts={accountsWithBalance}
+                selectedId={fromAccountId}
+                onSelect={setFromAccountId}
+                excludeId={toAccountId}
+              />
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                To
+              </Text>
+              <AccountPicker
+                accounts={accountsWithBalance}
+                selectedId={toAccountId}
+                onSelect={setToAccountId}
+                excludeId={fromAccountId}
+              />
+            </>
+          )}
 
-          {/* ── Date ────────────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            Date
-          </Text>
+          {balanceWarning ? (
+            <BalanceWarningBanner message={balanceWarning} />
+          ) : null}
+
+          {mode !== "transfer" ? (
+            <>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Category
+              </Text>
+              <CategoryPicker
+                type={mode}
+                selected={category}
+                onSelect={setCategory}
+              />
+            </>
+          ) : null}
+
+          <Text style={[styles.label, { color: colors.textMuted }]}>Date</Text>
           <TouchableOpacity
             onPress={() => setShowPicker(true)}
             style={[
@@ -270,12 +399,11 @@ export default function AddTransactionScreen() {
             />
           )}
 
-          {/* ── Note ────────────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>
             Note (optional)
           </Text>
           <Input
-            placeholder="e.g. Coffee with friends"
+            placeholder="Add a note"
             value={note}
             onChangeText={setNote}
             maxLength={80}
@@ -287,12 +415,11 @@ export default function AddTransactionScreen() {
             </Text>
           ) : null}
 
-          {/* ── Actions ─────────────────────────────────── */}
           <Button
-            label={isEditMode ? "Save changes" : "Add transaction"}
+            label={isEditMode ? "Save changes" : "Save"}
             onPress={onSave}
             loading={submitting}
-            disabled={submitting}
+            disabled={submitting || !!balanceWarning}
             icon={isEditMode ? "checkmark" : "add"}
             style={{ marginTop: 8 }}
           />
@@ -315,17 +442,13 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
   toggle: {
     flexDirection: "row",
     borderRadius: 14,
     borderWidth: 1,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   toggleBtn: {
     flex: 1,
@@ -334,20 +457,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 4,
   },
-  toggleLabel: { fontSize: 14, fontWeight: "700" },
-  amountBlock: { marginBottom: 24 },
+  toggleLabel: { fontSize: 13, fontWeight: "700" },
+  amountBlock: { marginBottom: 20 },
   amountLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
   amountRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   currency: { fontSize: 28, fontWeight: "800" },
-  sectionLabel: {
-    fontSize: 13,
+  label: {
+    fontSize: 12,
     fontWeight: "700",
-    marginTop: 8,
-    marginBottom: 10,
-    letterSpacing: 0.3,
     textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 10,
+    marginTop: 12,
   },
   dateRow: {
     flexDirection: "row",

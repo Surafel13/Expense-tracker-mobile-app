@@ -1,8 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// App-wide transactions provider (loads once, keeps in memory,
-// and persists every mutation back to AsyncStorage)
-// ─────────────────────────────────────────────────────────────
-
 import React, {
   createContext,
   useCallback,
@@ -17,6 +12,9 @@ import {
   updateTransaction as persistUpdate,
   deleteTransaction as persistDelete,
 } from "@storage/transactions";
+import { getAccounts } from "@storage/accounts";
+import { computeAccountBalance } from "@utils/balance";
+import { runMigrationOnce } from "@utils/migration";
 import type { Transaction, TransactionInput } from "@app-types/index";
 
 interface TransactionsContextValue {
@@ -35,6 +33,47 @@ const TransactionsContext = createContext<TransactionsContextValue | undefined>(
   undefined,
 );
 
+function sortTransactions(list: Transaction[]): Transaction[] {
+  return [...list].sort((a, b) => {
+    const byDate = b.date.localeCompare(a.date);
+    if (byDate !== 0) return byDate;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
+async function validateBalanceImpact(
+  input: TransactionInput,
+  existing: Transaction[],
+  ignoreId?: string,
+): Promise<void> {
+  const accounts = await getAccounts();
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+
+  if (input.type === "expense" && input.accountId) {
+    const acc = byId.get(input.accountId);
+    if (!acc || acc.allowNegative) return;
+    const relevant = existing.filter((t) => t.id !== ignoreId);
+    const current = computeAccountBalance(acc, relevant);
+    if (current - input.amount < 0) {
+      throw new Error(
+        `Insufficient balance in "${acc.name}". Available: $${current.toFixed(2)}`,
+      );
+    }
+  }
+
+  if (input.type === "transfer" && input.fromAccountId) {
+    const acc = byId.get(input.fromAccountId);
+    if (!acc || acc.allowNegative) return;
+    const relevant = existing.filter((t) => t.id !== ignoreId);
+    const current = computeAccountBalance(acc, relevant);
+    if (current - input.amount < 0) {
+      throw new Error(
+        `Insufficient balance in "${acc.name}". Available: $${current.toFixed(2)}`,
+      );
+    }
+  }
+}
+
 export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -43,45 +82,32 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refresh = useCallback(async () => {
     const stored = await getTransactions();
-    // Newest first (by date, then by createdAt as tie-breaker)
-    stored.sort((a, b) => {
-      const byDate = b.date.localeCompare(a.date);
-      if (byDate !== 0) return byDate;
-      return b.createdAt.localeCompare(a.createdAt);
-    });
-    setTransactions(stored);
+    setTransactions(sortTransactions(stored));
   }, []);
 
   useEffect(() => {
     (async () => {
+      await runMigrationOnce();
       await refresh();
       setIsReady(true);
     })();
   }, [refresh]);
 
   const addTransaction = useCallback(async (input: TransactionInput) => {
+    const existing = await getTransactions();
+    await validateBalanceImpact(input, existing);
     const created = await persistAdd(input);
-    setTransactions((prev) =>
-      [created, ...prev].sort((a, b) => {
-        const byDate = b.date.localeCompare(a.date);
-        if (byDate !== 0) return byDate;
-        return b.createdAt.localeCompare(a.createdAt);
-      }),
-    );
+    setTransactions((prev) => sortTransactions([created, ...prev]));
     return created;
   }, []);
 
   const updateTransaction = useCallback(
     async (id: string, patch: TransactionInput) => {
+      const existing = await getTransactions();
+      await validateBalanceImpact(patch, existing, id);
       const updated = await persistUpdate(id, patch);
       setTransactions((prev) =>
-        prev
-          .map((t) => (t.id === id ? updated : t))
-          .sort((a, b) => {
-            const byDate = b.date.localeCompare(a.date);
-            if (byDate !== 0) return byDate;
-            return b.createdAt.localeCompare(a.createdAt);
-          }),
+        sortTransactions(prev.map((t) => (t.id === id ? updated : t))),
       );
       return updated;
     },

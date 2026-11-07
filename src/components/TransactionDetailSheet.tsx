@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
   Easing,
@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@context/ThemeContext";
+import { useAccounts } from "@context/AccountsContext";
 import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
 import { formatDateLabel } from "@utils/date";
@@ -45,6 +46,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
 }) => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { accountsWithBalance } = useAccounts();
   const translateY = useRef(new Animated.Value(300)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -80,17 +82,36 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
     }
   }, [visible, translateY, backdropOpacity]);
 
-  if (!transaction) return null;
+  const category = useMemo(() => {
+    if (!transaction) return null;
+    if (transaction.category) return getCategory(transaction.category);
+    return {
+      icon: "swap-horizontal",
+      color: colors.primary,
+      label: "Transfer",
+      id: "other" as const,
+      type: "expense" as const,
+    };
+  }, [transaction, colors.primary]);
 
-  const category = transaction.category
-    ? getCategory(transaction.category)
-    : {
-        icon: "swap-horizontal",
-        color: colors.primary,
-        label: "Transfer",
-        id: "other" as const,
-        type: "expense" as const,
-      };
+  const accountName = useMemo(() => {
+    if (!transaction) return "";
+    if (transaction.type === "transfer") {
+      const from = accountsWithBalance.find(
+        (a) => a.id === transaction.fromAccountId,
+      );
+      const to = accountsWithBalance.find(
+        (a) => a.id === transaction.toAccountId,
+      );
+      return `${from?.name ?? "—"} → ${to?.name ?? "—"}`;
+    }
+    if (!transaction.accountId) return "Other";
+    const acc = accountsWithBalance.find((a) => a.id === transaction.accountId);
+    return acc?.name ?? "Other";
+  }, [transaction, accountsWithBalance]);
+
+  if (!transaction || !category) return null;
+
   const isIncome = transaction.type === "income";
   const isTransfer = transaction.type === "transfer";
   const amountColor = isIncome
@@ -100,6 +121,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
       : colors.expense;
   const amountPrefix = isIncome ? "+" : isTransfer ? "" : "-";
   const title = transaction.note?.trim() || category.label;
+
   return (
     <Modal
       transparent
@@ -154,7 +176,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
         </View>
 
         <Text style={[styles.amount, { color: amountColor }]}>
-          {isIncome ? "+" : "-"}
+          {amountPrefix}
           {formatCurrency(transaction.amount)}
         </Text>
 
@@ -176,13 +198,19 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
           <DetailRow
             icon="wallet-outline"
             label="Type"
-            value={isIncome ? "Income" : "Expense"}
+            value={
+              transaction.type === "income"
+                ? "Income"
+                : transaction.type === "transfer"
+                  ? "Transfer"
+                  : "Expense"
+            }
             colors={colors}
           />
           <DetailRow
             icon="card-outline"
-            label="Account"
-            value="Cash"
+            label={isTransfer ? "Between" : "Account"}
+            value={accountName}
             colors={colors}
           />
         </View>

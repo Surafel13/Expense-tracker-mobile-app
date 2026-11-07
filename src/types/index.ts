@@ -13,6 +13,17 @@ export type CategoryId =
   | "gift"
   | "other";
 
+export type AccountType = "cash" | "bank" | "savings" | "mobile";
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  openingBalance: number;
+  allowNegative: boolean;
+  createdAt: string;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
@@ -48,3 +59,7 @@ export interface MonthlyData {
 }
 
 export type TransactionInput = Omit<Transaction, "id" | "createdAt">;
+
+export interface AccountWithBalance extends Account {
+  balance: number;
+}

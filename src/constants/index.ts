@@ -1,18 +1,14 @@
-// ─────────────────────────────────────────────────────────────
-// Barrel export for constants
-// ─────────────────────────────────────────────────────────────
-
 export * from "./colors";
 export * from "./categories";
+export * from "./accounts";
 
-/** App-wide constants */
 export const APP_NAME = "Expense Tracker";
 
-/** AsyncStorage keys — keep namespaced to avoid clashes */
 export const STORAGE_KEYS = {
   TRANSACTIONS: "@expense_tracker/transactions",
+  ACCOUNTS: "@expense_tracker/accounts",
   THEME: "@expense_tracker/theme",
+  MIGRATION_V2: "@expense_tracker/migration_v2",
 } as const;
 
-/** Default currency symbol */
 export const CURRENCY = "USD";

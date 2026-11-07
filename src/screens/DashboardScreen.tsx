@@ -25,13 +25,16 @@ import { formatMonthLabel, isSameMonth } from "@utils/date";
 import { getCategory } from "@constants/categories";
 import type { Summary, Transaction } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
+import { useAccounts } from "@context/AccountsContext";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
+
   const { colors, cycleMode, resolvedScheme } = useTheme();
   const { transactions, isReady, deleteTransaction } = useTransactions();
+  const { accountsWithBalance } = useAccounts();
 
   const [selected, setSelected] = useState<Transaction | null>(null);
 
@@ -47,13 +50,13 @@ export default function DashboardScreen() {
     }
 
     const s: Summary = {
-      balance: income - expense,
+      balance: accountsWithBalance.reduce((sum, a) => sum + a.balance, 0),
       income,
       expense,
     };
 
     return { summary: s, recent: transactions.slice(0, 5) };
-  }, [transactions]);
+  }, [transactions, accountsWithBalance]);
 
   const monthLabel = formatMonthLabel(new Date());
 
