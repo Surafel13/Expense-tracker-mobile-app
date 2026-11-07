@@ -2,7 +2,8 @@
 // Root component: providers + navigation + status bar
 // ─────────────────────────────────────────────────────────────
 
-import React from "react";
+import React, { useMemo } from "react";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
   NavigationContainer,
@@ -16,27 +17,34 @@ import { ThemeProvider, useTheme } from "@context/ThemeContext";
 import { TransactionsProvider } from "@context/TransactionsContext";
 import { RootNavigator } from "@navigation/RootNavigator";
 
-/** Inner component — needs to be inside ThemeProvider to use useTheme */
 function ThemedApp() {
   const { colors, resolvedScheme } = useTheme();
 
-  const navTheme = {
-    ...(resolvedScheme === "dark" ? DarkTheme : DefaultTheme),
-    colors: {
-      ...(resolvedScheme === "dark" ? DarkTheme : DefaultTheme).colors,
-      background: colors.background,
-      card: colors.card,
-      text: colors.text,
-      border: colors.border,
-      primary: colors.primary,
-    },
-  };
+  const navTheme = useMemo(() => {
+    const base = resolvedScheme === "dark" ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.card,
+        text: colors.text,
+        border: colors.border,
+        primary: colors.primary,
+        notification: colors.danger,
+      },
+    };
+  }, [resolvedScheme, colors]);
 
+  // NOTE: NavigationContainer in v7 no longer accepts a `style` prop.
+  // Wrap it in a View to get the same flex:1 layout guarantee.
   return (
-    <NavigationContainer theme={navTheme}>
-      <RootNavigator />
-      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
-    </NavigationContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <NavigationContainer theme={navTheme}>
+        <RootNavigator />
+        <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
+      </NavigationContainer>
+    </View>
   );
 }
 

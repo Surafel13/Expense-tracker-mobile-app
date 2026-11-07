@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Transaction list row
-// ─────────────────────────────────────────────────────────────
-
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,11 +14,29 @@ interface TransactionItemProps {
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
-  onPress,
 }) => {
   const { colors } = useTheme();
-  const category = getCategory(transaction.category);
+  const category = transaction.category
+    ? getCategory(transaction.category)
+    : {
+        icon: "swap-horizontal",
+        color: colors.primary,
+        label: "Transfer" as const,
+      };
+
   const isIncome = transaction.type === "income";
+  const isTransfer = transaction.type === "transfer";
+
+  const amountColor = isIncome
+    ? colors.income
+    : isTransfer
+      ? colors.primary
+      : colors.expense;
+
+  const amountPrefix = isIncome ? "+" : isTransfer ? "" : "-";
+
+  const fallbackTitle = isTransfer ? "Transfer" : category.label;
+  const title = transaction.note?.trim() || fallbackTitle;
 
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
@@ -38,20 +52,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
       <View style={styles.mid}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {transaction.note?.trim() || category.label}
+          {title}
         </Text>
         <Text style={[styles.sub, { color: colors.textMuted }]}>
           {category.label} · {formatDayLabel(transaction.date)}
         </Text>
       </View>
 
-      <Text
-        style={[
-          styles.amount,
-          { color: isIncome ? colors.income : colors.expense },
-        ]}
-      >
-        {isIncome ? "+" : "-"}
+      <Text style={[styles.amount, { color: amountColor }]}>
+        {amountPrefix}
         {formatCurrency(transaction.amount)}
       </Text>
     </View>

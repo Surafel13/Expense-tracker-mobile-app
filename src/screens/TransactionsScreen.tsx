@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Transactions — full list with category & date filters
-// ─────────────────────────────────────────────────────────────
-
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -20,17 +16,18 @@ import { Card } from "@components/Card";
 import { CategoryChip } from "@components/CategoryChip";
 import { EmptyState } from "@components/EmptyState";
 import { TransactionItem } from "@components/TransactionItem";
+import { TransactionDetailSheet } from "@components/TransactionDetailSheet";
 
 import { useTheme } from "@context/ThemeContext";
 import { useTransactions } from "@context/TransactionsContext";
 import { getCategory } from "@constants/categories";
+import { formatCurrency } from "@utils/format";
 import { formatDateLabel, isSameDay, isSameMonth } from "@utils/date";
 
 import type { CategoryId, Transaction } from "@app-types/index";
 import type { RootStackParamList } from "@app-types/navigation";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
 type RangeKey = "thisMonth" | "lastMonth" | "all";
 
 const RANGE_LABELS: Record<RangeKey, string> = {
@@ -39,7 +36,6 @@ const RANGE_LABELS: Record<RangeKey, string> = {
   all: "All Time",
 };
 
-/** Categories currently present in the data (plus "All") */
 const FILTER_CATEGORIES: Array<CategoryId | "all"> = [
   "all",
   "food",
@@ -60,12 +56,10 @@ function inRange(date: string, range: RangeKey): boolean {
   const d = new Date(date);
   const now = new Date();
   if (range === "thisMonth") return isSameMonth(d, now);
-  // lastMonth
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   return isSameMonth(d, prev);
 }
 
-/** Group transactions by day (preserving sort order) */
 function groupByDay(items: Transaction[]): Array<{
   key: string;
   title: string;
@@ -75,7 +69,7 @@ function groupByDay(items: Transaction[]): Array<{
   const order: string[] = [];
 
   for (const t of items) {
-    const dayKey = t.date.slice(0, 10); // YYYY-MM-DD
+    const dayKey = t.date.slice(0, 10);
     if (!buckets.has(dayKey)) {
       buckets.set(dayKey, []);
       order.push(dayKey);
@@ -105,8 +99,8 @@ export default function TransactionsScreen() {
 
   const [category, setCategory] = useState<CategoryId | "all">("all");
   const [range, setRange] = useState<RangeKey>("thisMonth");
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
-  // ── Filter (memoized) ────────────────────────────────────
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
       if (category !== "all" && t.category !== category) return false;
@@ -118,16 +112,19 @@ export default function TransactionsScreen() {
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
   const confirmDelete = (t: Transaction) => {
-    const cat = getCategory(t.category);
+    const cat = t.category ? getCategory(t.category) : { label: "Transfer" };
     Alert.alert(
       "Delete transaction",
-      `Remove "${t.note?.trim() || cat.label}" of $${t.amount.toFixed(2)}?`,
+      `Remove "${t.note?.trim() || cat.label}" of ${formatCurrency(t.amount)}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => deleteTransaction(t.id),
+          onPress: async () => {
+            await deleteTransaction(t.id);
+            setSelected(null);
+          },
         },
       ],
     );
@@ -140,7 +137,6 @@ export default function TransactionsScreen() {
           Transactions
         </Text>
 
-        {/* ── Range filter ──────────────────────────────── */}
         <View style={styles.rangeRow}>
           {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => {
             const active = range === key;
@@ -169,7 +165,6 @@ export default function TransactionsScreen() {
           })}
         </View>
 
-        {/* ── Category filter row (horizontal scroll) ───── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -219,7 +214,6 @@ export default function TransactionsScreen() {
           ))}
         </ScrollView>
 
-        {/* ── List ──────────────────────────────────────── */}
         <ScrollView
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -244,11 +238,7 @@ export default function TransactionsScreen() {
                       <View style={styles.rowInner}>
                         <TransactionItem
                           transaction={t}
-                          onPress={() =>
-                            navigation.navigate("AddTransaction", {
-                              transactionId: t.id,
-                            })
-                          }
+                          onPress={() => setSelected(t)}
                         />
                       </View>
                       <TouchableOpacity
@@ -271,6 +261,17 @@ export default function TransactionsScreen() {
           )}
         </ScrollView>
       </View>
+
+      <TransactionDetailSheet
+        visible={!!selected}
+        transaction={selected}
+        onClose={() => setSelected(null)}
+        onEdit={(t) => {
+          setSelected(null);
+          navigation.navigate("AddTransaction", { transactionId: t.id });
+        }}
+        onDelete={confirmDelete}
+      />
     </Screen>
   );
 }

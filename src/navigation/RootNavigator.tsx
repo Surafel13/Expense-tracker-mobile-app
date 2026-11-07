@@ -20,7 +20,11 @@ export const RootNavigator: React.FC = () => {
         headerStyle: { backgroundColor: colors.card },
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: "700" },
+        // v7 replacement for the old `headerBackTitleVisible: false`:
+        headerBackButtonDisplayMode: "minimal",
         contentStyle: { backgroundColor: colors.background },
+        freezeOnBlur: true,
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen
@@ -33,8 +37,8 @@ export const RootNavigator: React.FC = () => {
         component={AddTransactionScreen}
         options={{
           presentation: "modal",
+          animation: "slide_from_bottom",
           title: "New Transaction",
-          headerShown: true,
         }}
       />
     </Stack.Navigator>

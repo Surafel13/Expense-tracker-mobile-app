@@ -75,6 +75,7 @@ export default function StatsScreen() {
       if (t.type === "income") income += t.amount;
       else {
         expense += t.amount;
+                if (!t.category) continue;
         const prev = catMap.get(t.category) ?? { total: 0, count: 0 };
         catMap.set(t.category, {
           total: prev.total + t.amount,

@@ -68,7 +68,7 @@ export default function AddTransactionScreen() {
     if (!editing) return;
     setType(editing.type);
     setAmountInput(String(editing.amount));
-    setCategory(editing.category);
+    setCategory(editing.category ?? null);
     setDate(new Date(editing.date));
     setNote(editing.note ?? "");
     navigation.setOptions({
