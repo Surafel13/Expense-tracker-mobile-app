@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -47,28 +47,36 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { accountsWithBalance } = useAccounts();
-  const translateY = useRef(new Animated.Value(300)).current;
+
+  const translateY = useRef(new Animated.Value(400)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setMounted(true);
+      translateY.setValue(400);
+      backdropOpacity.setValue(0);
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(backdropOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    } else if (mounted) {
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: 0,
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 300,
+          toValue: 400,
           duration: 180,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
@@ -78,9 +86,11 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
           duration: 160,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(({ finished }) => {
+        if (finished) setMounted(false);
+      });
     }
-  }, [visible, translateY, backdropOpacity]);
+  }, [visible, mounted, translateY, backdropOpacity]);
 
   const category = useMemo(() => {
     if (!transaction) return null;
@@ -110,7 +120,9 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
     return acc?.name ?? "Other";
   }, [transaction, accountsWithBalance]);
 
-  if (!transaction || !category) return null;
+  const shouldRender = (visible || mounted) && !!transaction && !!category;
+
+  if (!shouldRender) return null;
 
   const isIncome = transaction.type === "income";
   const isTransfer = transaction.type === "transfer";
@@ -125,7 +137,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
   return (
     <Modal
       transparent
-      visible={visible}
+      visible={visible || mounted}
       animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
