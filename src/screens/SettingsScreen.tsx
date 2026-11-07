@@ -13,9 +13,25 @@ import { Card } from "@components/Card";
 import { useTheme } from "@context/ThemeContext";
 import { useLanguage } from "@context/LanguageContext";
 import { LANGUAGES } from "@constants/translations";
+import type { TranslationKey } from "@constants/translations";
+import type { ThemeMode } from "@storage/settings";
+
+const THEME_OPTIONS: {
+  mode: ThemeMode;
+  labelKey: TranslationKey;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { mode: "light", labelKey: "settings.themeLight", icon: "sunny-outline" },
+  { mode: "dark", labelKey: "settings.themeDark", icon: "moon-outline" },
+  {
+    mode: "system",
+    labelKey: "settings.themeSystem",
+    icon: "phone-portrait-outline",
+  },
+];
 
 export default function SettingsScreen() {
-  const { colors } = useTheme();
+  const { colors, mode, setMode } = useTheme();
   const { t, language, setLanguage } = useLanguage();
 
   return (
@@ -28,6 +44,61 @@ export default function SettingsScreen() {
           {t("settings.title")}
         </Text>
 
+        {/* ── Appearance ─────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>
+            {t("settings.appearance")}
+          </Text>
+          <Card padded={false} style={styles.card}>
+            {THEME_OPTIONS.map((opt, idx) => {
+              const active = mode === opt.mode;
+              return (
+                <TouchableOpacity
+                  key={opt.mode}
+                  activeOpacity={0.8}
+                  onPress={() => setMode(opt.mode)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.row,
+                    idx > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.iconBadge,
+                      { backgroundColor: `${colors.primary}1A` },
+                    ]}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <View style={styles.rowText}>
+                    <Text style={[styles.native, { color: colors.text }]}>
+                      {t(opt.labelKey)}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={active ? "radio-button-on" : "radio-button-off"}
+                    size={22}
+                    color={active ? colors.primary : colors.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </Card>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            {t("settings.appearanceHint")}
+          </Text>
+        </View>
+
+        {/* ── Language ───────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.textMuted }]}>
             {t("settings.language")}
@@ -93,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 40,
-    gap: 20,
+    gap: 24,
   },
   heading: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
   section: { gap: 8 },

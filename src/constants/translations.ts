@@ -169,6 +169,11 @@ const en = {
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.languageHint": "Choose the language used throughout the app.",
+  "settings.appearance": "Appearance",
+  "settings.appearanceHint": "Choose how the app looks.",
+  "settings.themeLight": "Light",
+  "settings.themeDark": "Dark",
+  "settings.themeSystem": "System",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -317,6 +322,11 @@ const am: Record<TranslationKey, string> = {
   "settings.title": "ቅንብሮች",
   "settings.language": "ቋንቋ",
   "settings.languageHint": "በመተግበሪያው ውስጥ የሚጠቀሙበትን ቋንቋ ይምረጡ።",
+  "settings.appearance": "ገጽታ",
+  "settings.appearanceHint": "የመተግበሪያው ገጽታ እንዴት እንዲታይ ይምረጡ።",
+  "settings.themeLight": "ብሩህ",
+  "settings.themeDark": "ጨለማ",
+  "settings.themeSystem": "እንደ ስልኩ",
 };
 
 export const TRANSLATIONS: Record<Language, Record<TranslationKey, string>> = {

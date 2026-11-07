@@ -1,12 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@context/ThemeContext";
+import { useLanguage } from "@context/LanguageContext";
 import { getCategory } from "@constants/categories";
 import { formatCurrency } from "@utils/format";
 import { formatDayLabel } from "@utils/date";
 import type { Transaction } from "@app-types/index";
-import { useLanguage } from "@context/LanguageContext";
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -15,6 +15,7 @@ interface TransactionItemProps {
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
+  onPress,
 }) => {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -45,31 +46,40 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const title = transaction.note?.trim() || fallbackTitle;
 
   return (
-    <View style={[styles.row, { borderBottomColor: colors.border }]}>
-      <View
-        style={[styles.iconWrap, { backgroundColor: `${category.color}22` }]}
-      >
-        <Ionicons
-          name={category.icon as any}
-          size={22}
-          color={category.color}
-        />
-      </View>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <View style={[styles.row, { borderBottomColor: colors.border }]}>
+        <View
+          style={[styles.iconWrap, { backgroundColor: `${category.color}22` }]}
+        >
+          <Ionicons
+            name={category.icon as any}
+            size={22}
+            color={category.color}
+          />
+        </View>
 
-      <View style={styles.mid}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={[styles.sub, { color: colors.textMuted }]}>
-          {category.label} · {formatDayLabel(transaction.date)}
+        <View style={styles.mid}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Text style={[styles.sub, { color: colors.textMuted }]}>
+            {category.label} · {formatDayLabel(transaction.date)}
+          </Text>
+        </View>
+
+        <Text style={[styles.amount, { color: amountColor }]}>
+          {amountPrefix}
+          {formatCurrency(transaction.amount)}
         </Text>
       </View>
-
-      <Text style={[styles.amount, { color: amountColor }]}>
-        {amountPrefix}
-        {formatCurrency(transaction.amount)}
-      </Text>
-    </View>
+    </Pressable>
   );
 };
 
