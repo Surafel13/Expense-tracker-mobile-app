@@ -271,7 +271,7 @@ BirrFlow was developed to:
 Software Engineering Student | Junior Full-Stack Developer | Mobile App Developer
 
 - GitHub: [@Surafel13](https://github.com/Surafel13)
-- Portfolio: [Personal Portfolio](https://my-portfolio-ten-rho-54.vercel.app)
+- Portfolio: [Personal Portfolio](https://my-portfolio-beta-ruddy-17.vercel.app/)
 
 ---
 
