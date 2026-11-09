@@ -1,83 +1,170 @@
-# 💰 Expense Tracker Mobile App
+# BirrFlow – Personal Expense Tracker
 
-A modern, lightweight, and user-friendly mobile application built with **React Native, Expo, and TypeScript** to help users manage their personal finances, track daily expenses, monitor income, and understand their spending habits.
+**BirrFlow** is a modern personal finance management mobile application built with React Native, Expo, and TypeScript. It helps users manage their money, track daily income and expenses, organize financial accounts, and understand their spending habits.
 
-The application uses local storage to securely persist financial records directly on the device without requiring a backend server.
+Designed with a clean interface and intuitive navigation, BirrFlow provides an accessible way to monitor personal finances through interactive dashboards, transaction management, and financial statistics.
 
-## 📱 Features
+The application follows a local-first architecture, storing financial records directly on the user's device without requiring a backend server.
+
+---
+
+## Download the Application
+
+Try BirrFlow on your Android device.
+
+Scan the QR code below to access the latest available installation build.
+
+<p align="center">
+  <img src="./docs/birrflow-install-qr.png" width="200" alt="BirrFlow Installation QR Code" />
+</p>
+
+<p align="center">
+  <a href="https://expo.dev/accounts/surafel2113s-team/projects/birrflow/builds/1174d4ec-c85d-45f7-abe3-1f21669f4999">
+    <img src="https://img.shields.io/badge/Download-BirrFlow-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download BirrFlow" />
+  </a>
+</p>
+
+---
+
+## Application Preview
+
+BirrFlow provides a clean and intuitive interface with support for both light and dark themes.
 
 ### Dashboard
-- View total balance.
-- Monitor total income and expenses.
-- View recent transactions.
-- Get a quick overview of financial activities.
+
+The dashboard provides a quick overview of personal financial activities, including total balance, income, expenses, and recent transactions.
+
+<p align="center">
+  <img src="./docs/screenshots/Overview-light.jpg" width="250" alt="BirrFlow Dashboard Light Theme" />
+  &nbsp;&nbsp;
+  <img src="./docs/screenshots/Overview-dark.jpg" width="250" alt="BirrFlow Dashboard Dark Theme" />
+</p>
+
+<p align="center">
+  <sub>Light Theme &nbsp; | &nbsp; Dark Theme</sub>
+</p>
 
 ### Transaction Management
-- Add new income and expense transactions.
+
+Manage income and expenses, organize transactions by category, and review financial activities.
+
+<p align="center">
+  <img src="./docs/screenshots/Transaction-light.jpg" width="250" alt="Transactions Light Theme" />
+  &nbsp;&nbsp;
+  <img src="./docs/screenshots/Transaction-dark.jpg" width="250" alt="Transactions Dark Theme" />
+</p>
+
+<p align="center">
+  <sub>Transaction History – Light & Dark Themes</sub>
+</p>
+
+### Add Transactions
+
+Quickly record new income and expense transactions with relevant financial details.
+
+<p align="center">
+  <img src="./docs/screenshots/Add-transaction.jpg" width="250" alt="Add Transaction Screen" />
+</p>
+
+### Account Management
+
+Manage financial accounts and monitor individual account balances.
+
+<p align="center">
+  <img src="./docs/screenshots/Accounts.jpg" width="250" alt="Account Management Screen" />
+</p>
+
+### Settings and Personalization
+
+Customize the application experience through theme and language preferences.
+
+<p align="center">
+  <img src="./docs/screenshots/Setting.jpg" width="250" alt="BirrFlow Settings Screen" />
+</p>
+
+---
+
+## Features
+
+### Dashboard
+- View total financial balance.
+- Monitor total income and expenses.
+- View recent financial transactions.
+- Get an overview of financial activities.
+
+### Transaction Management
+- Create income and expense transactions.
 - Edit existing transactions.
 - Delete transactions.
 - Organize transactions using categories.
-- View transaction history.
+- View complete transaction history.
 - Filter transactions by category and date.
 
 ### Financial Statistics
 - View monthly income and expenses.
 - Analyze spending patterns.
-- Visualize financial activities using charts.
-- Track financial progress over time.
+- Visualize financial activities through charts.
+- Monitor financial progress over time.
 
 ### Account Management
-- Manage different financial accounts.
-- Track account balances.
+- Manage multiple financial accounts.
+- Track individual account balances.
 - Organize financial activities by account.
 
 ### Personalization
 - Light and dark themes.
+- Multilingual interface.
 - Persistent application settings.
-- Clean and responsive mobile interface.
+- Responsive and intuitive mobile interface.
 
-## 🛠️ Tech Stack
+### Local Data Persistence
+- Store financial records directly on the device.
+- Preserve transaction history after restarting the application.
+- Persist application settings.
+- Manage financial records without requiring a backend server.
+
+---
+
+## Technology Stack
 
 | Technology | Purpose |
 |---|---|
-| React Native | Mobile application development |
-| Expo | Development and deployment |
-| TypeScript | Type safety |
+| React Native | Cross-platform mobile development |
+| Expo | Development and application deployment |
+| TypeScript | Static typing and maintainability |
 | AsyncStorage | Local data persistence |
 | React Navigation | Application navigation |
 | Context API | Global state management |
-| Expo Vector Icons | Application icons |
+| Expo Vector Icons | Application iconography |
 
-## 📂 Project Structure
+---
+
+## Project Structure
 
 ```text
-expense-tracker/
+expense-tracker-app/
 │
 ├── assets/
 │
+├── docs/
+│   ├── birrflow-install-qr.png
+│   └── screenshots/
+│       ├── Accounts.jpg
+│       ├── Add-transaction.jpg
+│       ├── Overview-dark.jpg
+│       ├── Overview-light.jpg
+│       ├── Setting.jpg
+│       ├── Transaction-dark.jpg
+│       └── Transaction-light.jpg
+│
 ├── src/
 │   ├── components/
-│   │
 │   ├── screens/
-│   │   ├── Dashboard.tsx
-│   │   ├── AddTransaction.tsx
-│   │   ├── Transactions.tsx
-│   │   └── Stats.tsx
-│   │
 │   ├── navigation/
-│   │
 │   ├── context/
-│   │   ├── ThemeContext.tsx
-│   │   └── TransactionsContext.tsx
-│   │
 │   ├── storage/
-│   │   ├── settings.ts
-│   │   └── transactions.ts
-│   │
 │   ├── constants/
-│   │
 │   ├── types/
-│   │
 │   └── utils/
 │
 ├── App.tsx
@@ -86,7 +173,11 @@ expense-tracker/
 └── tsconfig.json
 ```
 
-## 🚀 Getting Started
+---
+
+## Getting Started
+
+Follow these instructions to run BirrFlow locally.
 
 ### Prerequisites
 
@@ -127,38 +218,67 @@ npx expo start
 3. Scan the QR code displayed in your terminal.
 4. Open the application using Expo Go.
 
-## 💾 Data Persistence
+---
 
-The application uses **AsyncStorage** to store financial information locally on the device.
+## Data Persistence and Privacy
 
-- Transactions remain available after restarting the application.
-- Application settings are persisted locally.
-- No external backend or database server is required.
+BirrFlow follows a local-first data management approach.
 
-## 🔒 Privacy
+Financial information is stored locally using AsyncStorage rather than being sent to an external backend server.
 
-This application follows a local-first approach.
+Key characteristics:
 
-Financial records are stored on the user's device rather than being sent to an external backend server.
+- Transactions persist across application restarts.
+- Application preferences are stored locally.
+- No external database server is required.
+- Financial records are managed on the user's device.
 
-## 🎯 Project Goals
+**Security note:** AsyncStorage is not encrypted by default. Sensitive information should use appropriate encrypted storage solutions.
 
-The main objectives of this project are to:
+---
 
-- Make personal financial management easier.
+## Future Improvements
+
+Potential improvements for future versions include:
+
+- Encrypted local data storage.
+- Financial data export (CSV and PDF).
+- Automated data backup and restoration.
+- Budget planning and spending limits.
+- Recurring transactions.
+- Advanced financial reports.
+- Additional chart visualizations.
+- More language support.
+
+---
+
+## Project Goals
+
+BirrFlow was developed to:
+
+- Simplify personal financial management.
 - Help users understand their spending habits.
-- Provide a simple way to track income and expenses.
-- Offer a clean and intuitive mobile experience.
-- Demonstrate practical React Native and TypeScript development skills.
+- Provide an intuitive way to track income and expenses.
+- Demonstrate practical React Native and TypeScript development.
+- Explore local-first mobile application architecture.
 
-## 👨‍💻 Developer
+---
+
+## Developer
 
 **Surafel Tesfaye**
 
 Software Engineering Student | Junior Full-Stack Developer | Mobile App Developer
 
 - GitHub: [@Surafel13](https://github.com/Surafel13)
+- Portfolio: [Personal Portfolio](https://my-portfolio-ten-rho-54.vercel.app)
 
 ---
 
-⭐ If you find this project interesting, consider giving it a star!
+<p align="center">
+  <strong>BirrFlow</strong>
+  <br />
+  Personal Finance Management, Simplified.
+  <br /><br />
+  Built with React Native, Expo, and TypeScript.
+</p>
