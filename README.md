@@ -35,9 +35,9 @@ BirrFlow provides a clean and intuitive interface with support for both light an
 The dashboard provides a quick overview of personal financial activities, including total balance, income, expenses, and recent transactions.
 
 <p align="center">
-  <img src="./docs/screenshots/Overview-light.jpg" width="250" alt="BirrFlow Dashboard Light Theme" />
+  <img src="./docs/screenshots/Overeview-light.jpg" width="250" alt="BirrFlow Dashboard Light Theme" />
   &nbsp;&nbsp;
-  <img src="./docs/screenshots/Overview-dark.jpg" width="250" alt="BirrFlow Dashboard Dark Theme" />
+  <img src="./docs/screenshots/Oveerview-dark.jpg" width="250" alt="BirrFlow Dashboard Dark Theme" />
 </p>
 
 <p align="center">
